@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>USDUT PFP — PNG Stickers</title>
+  <style>
+    :root{
+      --bg:#ffffff;
+      --text:#0b0c10;
+      --muted:#e6e8ef;
+      --panel:#ffffff;
+      --accent:#00b094;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; background:var(--bg); color:var(--text); font-family:Arial, sans-serif; display:flex; flex-direction:column; height:100%}
+    header{padding:14px 18px; display:flex; gap:10px; align-items:center; border-bottom:1px solid var(--muted); background:var(--bg)}
+    header h1{font-size:18px; margin:0; font-weight:700}
+    main{display:grid; grid-template-columns: 280px 1fr 260px; gap:14px; padding:14px; height:100%}
+    aside, .right{background:var(--panel); border:1px solid var(--muted); border-radius:12px; padding:12px}
+    .canvas-wrap{background:var(--panel); border:1px solid var(--muted); border-radius:14px; padding:14px; display:flex; align-items:center; justify-content:center}
+    .controls label{display:block; font-size:12px; color:#5d6470; margin-bottom:4px}
+    .controls .row{display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap}
+    input[type="file"]{display:none}
+    .btn{border:1px solid var(--muted); background:var(--accent); color:#fff; padding:8px 10px; border-radius:10px; cursor:pointer; font-weight:600}
+    .btn:hover{filter:brightness(0.95)}
+    .btn.block{display:block; width:100%}
+    .thumbs{display:grid; grid-template-columns: repeat(2,1fr); gap:8px}
+    .thumb{background:#fafbff; border:1px dashed var(--muted); height:70px; border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden}
+    .thumb img{max-width:100%; max-height:100%}
+    canvas{border:1px solid var(--muted); border-radius:12px; background:#f9f9f9}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>USDUT PFP</h1>
+  </header>
+  <main>
+    <aside>
+      <div class="controls">
+        <div class="row">
+          <label for="upload">Base Image</label>
+          <input id="upload" type="file" accept="image/*" />
+          <button class="btn block" id="uploadBtn">Upload Image…</button>
+        </div>
+        <div class="row">
+          <label>Predefined Stickers</label>
+          <div id="presetThumbs" class="thumbs" aria-live="polite"></div>
+        </div>
+      </div>
+    </aside>
+    <section class="canvas-wrap">
+      <canvas id="canvas" width="1024" height="1024"></canvas>
+    </section>
+    <section class="right">
+      <div class="controls">
+        <div class="row">
+          <label>Canvas Size</label>
+          <button class="btn" data-size="512">512 px</button>
+          <button class="btn" data-size="1024">1024 px</button>
+          <button class="btn" data-size="2048">2048 px</button>
+        </div>
+        <div class="row">
+          <button class="btn" id="exportBtn">Export PNG</button>
+          <button class="btn" id="clearBtn">Remove Selected</button>
+        </div>
+        <div class="row">
+          <label for="scaleRange">Scale Sticker</label>
+          <input id="scaleRange" type="range" min="0.1" max="4" step="0.01" value="1" />
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // === CONFIG: STICKERS ===
+    const STICKERS = [
+      "/stickers/sticker1.png",
+      "/stickers/sticker2.png",
+      "/stickers/sticker3.png",
+      "/stickers/sticker4.png"
+    ];
+
+    // === UTILITIES ===
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let baseImage = null;
+    const stickers = [];
+    let selectedId = null;
+    let dragging=false, scaling=false;
+    let dragOffset={x:0,y:0};
+    let scaleStart={dist:0, scale:1};
+    const HANDLE_SIZE = 16;
+
+    function getCanvasRect(){ return canvas.getBoundingClientRect(); }
+    function getPointer(e){
+      const r = getCanvasRect();
+      if(e.touches && e.touches.length){
+        const t=e.touches[0];
+        return {x:(t.clientX-r.left)*(canvas.width/r.width), y:(t.clientY-r.top)*(canvas.height/r.height)};
+      }
+      return {x:(e.clientX-r.left)*(canvas.width/r.width), y:(e.clientY-r.top)*(canvas.height/r.height)};
+    }
+
+    function createSticker(img){
+      const id = crypto.randomUUID();
+      const maxSide = Math.max(img.width, img.height);
+      const initScale = Math.min(1, (canvas.width*0.35)/maxSide);
+      const s = { id, img, x: canvas.width/2, y: canvas.height/2, scale: initScale, w: img.width, h: img.height };
+      stickers.push(s); selectedId=id; draw();
+    }
+
+    function pointInSticker(p,s){ const hw=s.w*s.scale/2, hh=s.h*s.scale/2; return p.x>=s.x-hw && p.x<=s.x+hw && p.y>=s.y-hh && p.y<=s.y+hh; }
+    function handleRect(s){ const x=s.x + (s.w*s.scale/2), y=s.y + (s.h*s.scale/2); return {x:x-HANDLE_SIZE/2, y:y-HANDLE_SIZE/2, w:HANDLE_SIZE, h:HANDLE_SIZE}; }
+    function pointInRect(p,r){ return p.x>=r.x && p.x<=r.x+r.w && p.y>=r.y && p.y<=r.y+r.h; }
+
+    function draw(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      if(baseImage){ const b=baseImage; ctx.drawImage(b.img, b.sx,b.sy,b.sw,b.sh, b.dx,b.dy,b.dw,b.dh); }
+      for(const s of stickers){
+        const dw=s.w*s.scale, dh=s.h*s.scale;
+        ctx.drawImage(s.img, s.x-dw/2, s.y-dh/2, dw, dh);
+      }
+      if(selectedId){
+        const s=stickers.find(x=>x.id===selectedId);
+        if(s){
+          const dw=s.w*s.scale, dh=s.h*s.scale;
+          ctx.save();
+          ctx.strokeStyle='#00b094';
+          ctx.lineWidth=2;
+          ctx.setLineDash([6,4]);
+          ctx.strokeRect(s.x-dw/2, s.y-dh/2, dw, dh);
+          ctx.setLineDash([]);
+          const h=handleRect(s);
+          ctx.fillStyle='#00b094';
+          ctx.fillRect(h.x,h.y,h.w,h.h);
+          ctx.restore();
+        }
+      }
+    }
+
+    function fitImageCover(img, target){
+      const tw=target, th=target;
+      const iw=img.width, ih=img.height;
+      const sc=Math.max(tw/iw, th/ih);
+      const sw=tw/sc, sh=th/sc;
+      const sx=(iw-sw)/2, sy=(ih-sh)/2;
+      return {img, sx,sy,sw,sh, dx:0,dy:0,dw:tw,dh:th};
+    }
+
+    function loadBaseFromFile(file){
+      const img=new Image();
+      img.onload=()=>{ baseImage=fitImageCover(img, canvas.width); draw(); };
+      img.src=URL.createObjectURL(file);
+    }
+
+    function buildPresetThumbs(){
+      const tray = document.getElementById('presetThumbs');
+      tray.innerHTML='';
+      STICKERS.forEach(src=>{
+        const img = new Image();
+        img.src = src;
+        img.alt='sticker';
+        const cell = document.createElement('button');
+        cell.className='thumb';
+        cell.appendChild(img);
+        cell.addEventListener('click', ()=>{
+          const i=new Image();
+          i.crossOrigin='anonymous';
+          i.onload=()=>createSticker(i);
+          i.src=src;
+        });
+        tray.appendChild(cell);
+      });
+    }
+
+    // Mouse events
+    canvas.addEventListener('mousedown', e=>{
+      const p=getPointer(e);
+      const s=selectedId?stickers.find(x=>x.id===selectedId):null;
+      if(s && pointInRect(p, handleRect(s))){
+        scaling=true; dragging=false;
+        scaleStart={dist:Math.hypot(p.x-s.x,p.y-s.y), scale:s.scale};
+        return;
+      }
+      for(let i=stickers.length-1;i>=0;i--){
+        const st=stickers[i];
+        if(pointInSticker(p,st)){
+          selectedId=st.id; draw();
+          dragging=true;
+          dragOffset={x:p.x-st.x,y:p.y-st.y};
+          const idx=stickers.indexOf(st);
+          stickers.splice(idx,1);
+          stickers.push(st);
+          return;
+        }
+      }
+      selectedId=null; draw();
+    });
+
+    canvas.addEventListener('mousemove', e=>{
+      const p=getPointer(e);
+      if(dragging && selectedId){
+        const s=stickers.find(x=>x.id===selectedId);
+        s.x=p.x-dragOffset.x; s.y=p.y-dragOffset.y; draw();
+      } else if(scaling && selectedId){
+        const s=stickers.find(x=>x.id===selectedId);
+        const d=Math.hypot(p.x-s.x,p.y-s.y);
+        s.scale=Math.max(0.1, Math.min(8, scaleStart.scale*(d/scaleStart.dist)));
+        $('#scaleRange').value=s.scale.toFixed(2);
+        draw();
+      }
+    });
+
+    window.addEventListener('mouseup', ()=>{ dragging=false; scaling=false; });
+
+    // Wheel scaling
+    canvas.addEventListener('wheel', e=>{
+      if(!selectedId) return;
+      const s=stickers.find(x=>x.id===selectedId);
+      const delta = e.deltaY<0?1.06:0.94;
+      s.scale=Math.max(0.1,Math.min(8,s.scale*delta));
+      $('#scaleRange').value=s.scale.toFixed(2);
+      draw();
+      e.preventDefault();
+    }, {passive:false});
+
+    // UI
+    $('#uploadBtn').addEventListener('click', ()=> $('#upload').click());
+    $('#upload').addEventListener('change', e=>{
+      const f=e.target.files[0];
+      if(f) loadBaseFromFile(f);
+    });
+
+    $('#exportBtn').addEventListener('click', exportPNG);
+    $('#clearBtn').addEventListener('click', removeSelected);
+    $$('.right [data-size]').forEach(btn=> btn.addEventListener('click', ()=> resizeCanvas(parseInt(btn.dataset.size,10))));
+    $('#scaleRange').addEventListener('input', e=>{
+      if(!selectedId) return;
+      const s=stickers.find(x=>x.id===selectedId);
+      s.scale=parseFloat(e.target.value);
+      draw();
+    });
+
+    function removeSelected(){
+      if(!selectedId) return;
+      const i=stickers.findIndex(x=>x.id===selectedId);
+      if(i>-1){ stickers.splice(i,1); selectedId=null; draw(); }
+    }
+
+    function resizeCanvas(size){
+      const snapshot=document.createElement('canvas');
+      snapshot.width=canvas.width;
+      snapshot.height=canvas.height;
+      const sctx=snapshot.getContext('2d');
+      draw();
+      sctx.drawImage(canvas,0,0);
+      canvas.width=canvas.height=size;
+      if(baseImage){ baseImage=fitImageCover(baseImage.img, size);}
+      const k=size/snapshot.width;
+      stickers.forEach(st=>{ st.x*=k; st.y*=k; st.scale*=k; });
+      draw();
+    }
+
+    function exportPNG(){
+      draw();
+      const url=canvas.toDataURL('image/png');
+      const a=document.createElement('a');
+      const ts=new Date().toISOString().replace(/[:.]/g,'-');
+      a.download=`USDUT_PFP_${ts}_${canvas.width}x${canvas.height}.png`;
+      a.href=url;
+      a.click();
+    }
+
+    // Init
+    buildPresetThumbs();
+    draw();
+  </script>
+</body>
+</html>
