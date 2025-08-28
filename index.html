@@ -16,7 +16,7 @@
     body{margin:0; background:var(--bg); color:var(--text); font-family:Arial, sans-serif; display:flex; flex-direction:column; height:100%}
     header{padding:14px 18px; display:flex; gap:10px; align-items:center; border-bottom:1px solid var(--muted); background:var(--bg)}
     header h1{font-size:18px; margin:0; font-weight:700}
-    main{display:grid; grid-template-columns: 300px 1fr 280px; gap:14px; padding:14px; height:100%}
+    main{display:grid; grid-template-columns: 300px 1fr 300px; gap:14px; padding:14px; height:100%}
     aside, .right{background:var(--panel); border:1px solid var(--muted); border-radius:12px; padding:12px}
     .canvas-wrap{background:var(--panel); border:1px solid var(--muted); border-radius:14px; padding:14px; display:flex; align-items:center; justify-content:center}
     .controls label{display:block; font-size:12px; color:#5d6470; margin-bottom:4px}
@@ -87,10 +87,11 @@
           <button class="btn" id="exportBtn">Export PNG</button>
           <button class="btn ghost" id="clearBtn">Remove Selected</button>
           <button class="btn ghost" id="frontBtn">Bring to Front</button>
+          <button class="btn ghost" id="flipBtn">Flip Horizontal</button>
         </div>
         <div class="row">
           <label for="scaleRange">Scale Sticker</label>
-          <input id="scaleRange" type="range" min="0.000001" max="4" step="0.000001" value="1" />
+          <input id="scaleRange" type="range" min="1e-6" max="4" step="1e-6" value="1" />
         </div>
       </div>
     </section>
@@ -125,12 +126,16 @@
     let bgImage = null;   // fitted to cover
 
     // Stickers state
-    const stickers = []; // {id,img,x,y,scale,w,h}
+    // Each sticker now supports rotation (angle in radians) and horizontal flip
+    const stickers = []; // {id,img,x,y,scale,w,h,angle,flipX}
     let selectedId = null;
-    let dragging=false, scaling=false;
+    let dragging=false, scaling=false, rotating=false;
     let dragOffset={x:0,y:0};
     let scaleStart={dist:0, scale:1};
+    let rotateStart={base:0, angle0:0};
     const HANDLE_SIZE = 16;
+    const ROTATE_HANDLE_OFFSET = 30; // px above top edge (in local coords)
+    const ROTATE_HANDLE_RADIUS = 14;
 
     function getCanvasRect(){ return canvas.getBoundingClientRect(); }
     function getPointer(e){
@@ -146,24 +151,74 @@
       const id = crypto.randomUUID();
       const maxSide = Math.max(img.width, img.height);
       const initScale = Math.min(1, (canvas.width*0.35)/maxSide);
-      const s = { id, img, x: canvas.width/2, y: canvas.height/2, scale: initScale, w: img.width, h: img.height };
+      const s = { id, img, x: canvas.width/2, y: canvas.height/2, scale: initScale, w: img.width, h: img.height, angle: 0, flipX: false };
       stickers.push(s); selectedId=id; draw();
     }
 
-    function pointInSticker(p,s){ const hw=s.w*s.scale/2, hh=s.h*s.scale/2; return p.x>=s.x-hw && p.x<=s.x+hw && p.y>=s.y-hh && p.y<=s.y+hh; }
-    function handleRect(s){ const x=s.x + (s.w*s.scale/2), y=s.y + (s.h*s.scale/2); return {x:x-HANDLE_SIZE/2, y:y-HANDLE_SIZE/2, w:HANDLE_SIZE, h:HANDLE_SIZE}; }
-    function pointInRect(p,r){ return p.x>=r.x && p.x<=r.x+r.w && p.y>=r.y && p.y<=r.y+r.h; }
+    // --- Geometry helpers ---
+    function toLocal(p, s){
+      // Convert screen point p to sticker local space (before scale/rotation)
+      let x = p.x - s.x; let y = p.y - s.y;
+      // undo rotation
+      const ca = Math.cos(-s.angle), sa = Math.sin(-s.angle);
+      const xr = x*ca - y*sa; const yr = x*sa + y*ca;
+      // undo scale (ignore flip sign)
+      const sc = s.scale || 1e-6; // avoid /0
+      return { x: xr / sc, y: yr / sc };
+    }
+
+    function pointInSticker(p, s){
+      const lp = toLocal(p, s);
+      return Math.abs(lp.x) <= s.w/2 && Math.abs(lp.y) <= s.h/2;
+    }
+
+    function isOnRotateHandle(p, s){
+      const lp = toLocal(p, s);
+      const hx = 0; // top-center handle x in local space
+      const hy = -s.h/2 - ROTATE_HANDLE_OFFSET;
+      const d = Math.hypot(lp.x - hx, lp.y - hy);
+      return d <= ROTATE_HANDLE_RADIUS;
+    }
 
     function draw(){
       ctx.clearRect(0,0,canvas.width,canvas.height);
       // background first
       if(bgImage){ const b=bgImage; ctx.drawImage(b.img, b.sx,b.sy,b.sw,b.sh, b.dx,b.dy,b.dw,b.dh); }
-      // base image (optional) over background
+      // base image over background
       if(baseImage){ const b=baseImage; ctx.drawImage(b.img, b.sx,b.sy,b.sw,b.sh, b.dx,b.dy,b.dw,b.dh); }
       // stickers on top
-      for(const s of stickers){ const dw=s.w*s.scale, dh=s.h*s.scale; ctx.drawImage(s.img, s.x-dw/2, s.y-dh/2, dw, dh); }
-      // selection box
-      if(selectedId){ const s=stickers.find(x=>x.id===selectedId); if(s){ const dw=s.w*s.scale, dh=s.h*s.scale; ctx.save(); ctx.strokeStyle='#00b094'; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.strokeRect(s.x-dw/2, s.y-dh/2, dw, dh); ctx.setLineDash([]); const h=handleRect(s); ctx.fillStyle='#00b094'; ctx.fillRect(h.x,h.y,h.w,h.h); ctx.restore(); }}
+      for(const s of stickers){ drawSticker(s); }
+      // selection box + rotate handle
+      if(selectedId){ const s=stickers.find(x=>x.id===selectedId); if(s) drawSelection(s); }
+    }
+
+    function drawSticker(s){
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.rotate(s.angle);
+      const sx = (s.flipX ? -1 : 1) * s.scale;
+      const sy = s.scale;
+      ctx.scale(sx, sy);
+      ctx.drawImage(s.img, -s.w/2, -s.h/2, s.w, s.h);
+      ctx.restore();
+    }
+
+    function drawSelection(s){
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.rotate(s.angle);
+      ctx.strokeStyle = '#00b094';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6,4]);
+      ctx.strokeRect(-s.w/2 * s.scale, -s.h/2 * s.scale, s.w * s.scale, s.h * s.scale);
+      ctx.setLineDash([]);
+      // rotate handle line + knob (top-center)
+      const topY = -s.h/2 * s.scale;
+      const hx = 0, hy = topY - ROTATE_HANDLE_OFFSET; // already in scaled space
+      ctx.beginPath(); ctx.moveTo(0, topY); ctx.lineTo(hx, hy); ctx.stroke();
+      ctx.fillStyle = '#00b094';
+      ctx.beginPath(); ctx.arc(hx, hy, ROTATE_HANDLE_RADIUS, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
     }
 
     function fitImageCover(img, target){
@@ -171,9 +226,7 @@
     }
 
     function loadBaseFromFile(file){ const img=new Image(); img.onload=()=>{ baseImage=fitImageCover(img, canvas.width); draw(); }; img.src=URL.createObjectURL(file); }
-
     function loadBackground(src){ const img=new Image(); img.onload=()=>{ bgImage=fitImageCover(img, canvas.width); draw(); }; img.src=src; }
-
     function clearBackground(){ bgImage=null; draw(); }
 
     function buildPresetThumbs(){
@@ -196,18 +249,49 @@
       });
     }
 
-    // Mouse
+    // --- Events ---
     canvas.addEventListener('mousedown', e=>{
-      const p=getPointer(e); const s=selectedId?stickers.find(x=>x.id===selectedId):null;
-      if(s && pointInRect(p, handleRect(s))){ scaling=true; dragging=false; scaleStart={dist:Math.hypot(p.x-s.x,p.y-s.y), scale:s.scale}; return; }
-      for(let i=stickers.length-1;i>=0;i--){ const st=stickers[i]; if(pointInSticker(p,st)){ selectedId=st.id; draw(); dragging=true; dragOffset={x:p.x-st.x,y:p.y-st.y}; const idx=stickers.indexOf(st); stickers.splice(idx,1); stickers.push(st); return; } }
+      const p=getPointer(e);
+      const s=selectedId?stickers.find(x=>x.id===selectedId):null;
+      if(s && isOnRotateHandle(p,s)){
+        rotating = true; dragging=false; scaling=false;
+        rotateStart = { base: Math.atan2(p.y - s.y, p.x - s.x), angle0: s.angle };
+        return;
+      }
+      if(s && pointInSticker(p, s)){
+        // choose handle bottom-right for scaling? We'll keep existing handle via keyboard/slider; scaling via handle is optional here
+      }
+      // dragging select from topmost
+      for(let i=stickers.length-1;i>=0;i--){
+        const st=stickers[i];
+        if(pointInSticker(p,st)){
+          selectedId=st.id; draw();
+          dragging=true; scaling=false; rotating=false;
+          dragOffset={x:p.x-st.x,y:p.y-st.y};
+          const idx=stickers.indexOf(st); stickers.splice(idx,1); stickers.push(st);
+          return;
+        }
+      }
       selectedId=null; draw();
     });
-    canvas.addEventListener('mousemove', e=>{ const p=getPointer(e); if(dragging && selectedId){ const s=stickers.find(x=>x.id===selectedId); s.x=p.x-dragOffset.x; s.y=p.y-dragOffset.y; draw(); } else if(scaling && selectedId){ const s=stickers.find(x=>x.id===selectedId); const d=Math.hypot(p.x-s.x,p.y-s.y); s.scale=Math.max(1e-6, Math.min(8, scaleStart.scale*(d/scaleStart.dist))); $('#scaleRange').value=s.scale.toFixed(2); draw(); } });
-    window.addEventListener('mouseup', ()=>{ dragging=false; scaling=false; });
+
+    canvas.addEventListener('mousemove', e=>{
+      const p=getPointer(e);
+      if(rotating && selectedId){
+        const s=stickers.find(x=>x.id===selectedId);
+        const a = Math.atan2(p.y - s.y, p.x - s.x);
+        s.angle = rotateStart.angle0 + (a - rotateStart.base);
+        draw();
+      } else if(dragging && selectedId){
+        const s=stickers.find(x=>x.id===selectedId);
+        s.x=p.x-dragOffset.x; s.y=p.y-dragOffset.y; draw();
+      }
+    });
+
+    window.addEventListener('mouseup', ()=>{ dragging=false; scaling=false; rotating=false; });
 
     // Wheel scale
-    canvas.addEventListener('wheel', e=>{ if(!selectedId) return; const s=stickers.find(x=>x.id===selectedId); const delta = e.deltaY<0?1.06:0.94; s.scale=Math.max(1e-6,Math.min(8,s.scale*delta)); $('#scaleRange').value=s.scale.toFixed(2); draw(); e.preventDefault(); }, {passive:false});
+    canvas.addEventListener('wheel', e=>{ if(!selectedId) return; const s=stickers.find(x=>x.id===selectedId); const delta = e.deltaY<0?1.06:0.94; s.scale=Math.max(1e-6,Math.min(8,s.scale*delta)); $('#scaleRange').value=s.scale; draw(); e.preventDefault(); }, {passive:false});
 
     // UI
     $('#uploadBtn').addEventListener('click', ()=> $('#upload').click());
@@ -215,10 +299,12 @@
     $('#exportBtn').addEventListener('click', exportPNG);
     $('#clearBtn').addEventListener('click', removeSelected);
     $('#frontBtn').addEventListener('click', bringToFront);
+    $('#flipBtn').addEventListener('click', flipSelected);
     $('#clearBgBtn').addEventListener('click', clearBackground);
     $$('.right [data-size]').forEach(btn=> btn.addEventListener('click', ()=> resizeCanvas(parseInt(btn.dataset.size,10))));
-    $('#scaleRange').addEventListener('input', e=>{ if(!selectedId) return; const s=stickers.find(x=>x.id===selectedId); s.scale=parseFloat(e.target.value); draw(); });
+    $('#scaleRange').addEventListener('input', e=>{ if(!selectedId) return; const s=stickers.find(x=>x.id===selectedId); s.scale=Math.max(1e-6, parseFloat(e.target.value)); draw(); });
 
+    function flipSelected(){ if(!selectedId) return; const s=stickers.find(x=>x.id===selectedId); s.flipX = !s.flipX; draw(); }
     function bringToFront(){ if(!selectedId) return; const idx=stickers.findIndex(x=>x.id===selectedId); if(idx>-1){ const s=stickers.splice(idx,1)[0]; stickers.push(s); draw(); } }
     function removeSelected(){ if(!selectedId) return; const i=stickers.findIndex(x=>x.id===selectedId); if(i>-1){ stickers.splice(i,1); selectedId=null; draw(); } }
 
