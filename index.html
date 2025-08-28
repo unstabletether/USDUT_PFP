@@ -16,7 +16,7 @@
     body{margin:0; background:var(--bg); color:var(--text); font-family:Arial, sans-serif; display:flex; flex-direction:column; height:100%}
     header{padding:14px 18px; display:flex; gap:10px; align-items:center; border-bottom:1px solid var(--muted); background:var(--bg)}
     header h1{font-size:18px; margin:0; font-weight:700}
-    main{display:grid; grid-template-columns: 280px 1fr 260px; gap:14px; padding:14px; height:100%}
+    main{display:grid; grid-template-columns: 300px 1fr 280px; gap:14px; padding:14px; height:100%}
     aside, .right{background:var(--panel); border:1px solid var(--muted); border-radius:12px; padding:12px}
     .canvas-wrap{background:var(--panel); border:1px solid var(--muted); border-radius:14px; padding:14px; display:flex; align-items:center; justify-content:center}
     .controls label{display:block; font-size:12px; color:#5d6470; margin-bottom:4px}
@@ -25,33 +25,55 @@
     .btn{border:1px solid var(--muted); background:var(--accent); color:#fff; padding:8px 10px; border-radius:10px; cursor:pointer; font-weight:600}
     .btn:hover{filter:brightness(0.95)}
     .btn.block{display:block; width:100%}
-    .thumbs{display:grid; grid-template-columns: repeat(2,1fr); gap:8px}
+    .btn.ghost{background:#fff; color:var(--text)}
+    .thumbs{display:grid; grid-template-columns: repeat(3,1fr); gap:8px}
     .thumb{background:#fafbff; border:1px dashed var(--muted); height:70px; border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden}
     .thumb img{max-width:100%; max-height:100%}
     canvas{border:1px solid var(--muted); border-radius:12px; background:#f9f9f9}
+    .hr{height:1px; background:var(--muted); margin:12px 0}
   </style>
 </head>
 <body>
   <header>
     <h1>USDUT PFP</h1>
   </header>
+
   <main>
+    <!-- LEFT: Upload + Backgrounds + Stickers -->
     <aside>
       <div class="controls">
+        <!-- Base image upload -->
         <div class="row">
-          <label for="upload">Base Image</label>
+          <label for="upload">Base Image (optional)</label>
           <input id="upload" type="file" accept="image/*" />
           <button class="btn block" id="uploadBtn">Upload Image…</button>
         </div>
+
+        <div class="hr"></div>
+
+        <!-- Background chooser -->
+        <div class="row">
+          <label>Backgrounds</label>
+          <div id="bgThumbs" class="thumbs" aria-live="polite"></div>
+          <button class="btn ghost block" id="clearBgBtn" title="Remove background">No Background</button>
+        </div>
+
+        <div class="hr"></div>
+
+        <!-- Stickers -->
         <div class="row">
           <label>Predefined Stickers</label>
           <div id="presetThumbs" class="thumbs" aria-live="polite"></div>
         </div>
       </div>
     </aside>
+
+    <!-- CENTER: Canvas -->
     <section class="canvas-wrap">
       <canvas id="canvas" width="1024" height="1024"></canvas>
     </section>
+
+    <!-- RIGHT: Tools -->
     <section class="right">
       <div class="controls">
         <div class="row">
@@ -59,10 +81,12 @@
           <button class="btn" data-size="512">512 px</button>
           <button class="btn" data-size="1024">1024 px</button>
           <button class="btn" data-size="2048">2048 px</button>
+          <button class="btn" data-size="3072">3072 px</button>
         </div>
         <div class="row">
           <button class="btn" id="exportBtn">Export PNG</button>
-          <button class="btn" id="clearBtn">Remove Selected</button>
+          <button class="btn ghost" id="clearBtn">Remove Selected</button>
+          <button class="btn ghost" id="frontBtn">Bring to Front</button>
         </div>
         <div class="row">
           <label for="scaleRange">Scale Sticker</label>
@@ -73,22 +97,35 @@
   </main>
 
   <script>
-    // === CONFIG: STICKERS ===
+    // === CONFIG ===
+    // Stickers (overlay elements)
     const STICKERS = [
       "/stickers/sticker1.png",
       "/stickers/sticker2.png",
       "/stickers/sticker3.png",
       "/stickers/sticker4.png"
     ];
+    // Backgrounds (drawn behind everything)
+    const BACKGROUNDS = [
+      "/stickers/bg1.png",
+      "/stickers/bg2.png",
+      "/stickers/bg3.png",
+      "/stickers/bg4.png"
+    ];
 
-    // === UTILITIES ===
+    // === Utilities ===
     const $ = (sel, root=document) => root.querySelector(sel);
     const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    let baseImage = null;
-    const stickers = [];
+
+    // Base image (optional) and background layer
+    let baseImage = null; // fitted to cover
+    let bgImage = null;   // fitted to cover
+
+    // Stickers state
+    const stickers = []; // {id,img,x,y,scale,w,h}
     let selectedId = null;
     let dragging=false, scaling=false;
     let dragOffset={x:0,y:0};
@@ -119,163 +156,87 @@
 
     function draw(){
       ctx.clearRect(0,0,canvas.width,canvas.height);
+      // background first
+      if(bgImage){ const b=bgImage; ctx.drawImage(b.img, b.sx,b.sy,b.sw,b.sh, b.dx,b.dy,b.dw,b.dh); }
+      // base image (optional) over background
       if(baseImage){ const b=baseImage; ctx.drawImage(b.img, b.sx,b.sy,b.sw,b.sh, b.dx,b.dy,b.dw,b.dh); }
-      for(const s of stickers){
-        const dw=s.w*s.scale, dh=s.h*s.scale;
-        ctx.drawImage(s.img, s.x-dw/2, s.y-dh/2, dw, dh);
-      }
-      if(selectedId){
-        const s=stickers.find(x=>x.id===selectedId);
-        if(s){
-          const dw=s.w*s.scale, dh=s.h*s.scale;
-          ctx.save();
-          ctx.strokeStyle='#00b094';
-          ctx.lineWidth=2;
-          ctx.setLineDash([6,4]);
-          ctx.strokeRect(s.x-dw/2, s.y-dh/2, dw, dh);
-          ctx.setLineDash([]);
-          const h=handleRect(s);
-          ctx.fillStyle='#00b094';
-          ctx.fillRect(h.x,h.y,h.w,h.h);
-          ctx.restore();
-        }
-      }
+      // stickers on top
+      for(const s of stickers){ const dw=s.w*s.scale, dh=s.h*s.scale; ctx.drawImage(s.img, s.x-dw/2, s.y-dh/2, dw, dh); }
+      // selection box
+      if(selectedId){ const s=stickers.find(x=>x.id===selectedId); if(s){ const dw=s.w*s.scale, dh=s.h*s.scale; ctx.save(); ctx.strokeStyle='#00b094'; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.strokeRect(s.x-dw/2, s.y-dh/2, dw, dh); ctx.setLineDash([]); const h=handleRect(s); ctx.fillStyle='#00b094'; ctx.fillRect(h.x,h.y,h.w,h.h); ctx.restore(); }}
     }
 
     function fitImageCover(img, target){
-      const tw=target, th=target;
-      const iw=img.width, ih=img.height;
-      const sc=Math.max(tw/iw, th/ih);
-      const sw=tw/sc, sh=th/sc;
-      const sx=(iw-sw)/2, sy=(ih-sh)/2;
-      return {img, sx,sy,sw,sh, dx:0,dy:0,dw:tw,dh:th};
+      const tw=target, th=target; const iw=img.width, ih=img.height; const sc=Math.max(tw/iw, th/ih); const sw=tw/sc, sh=th/sc; const sx=(iw-sw)/2, sy=(ih-sh)/2; return {img, sx,sy,sw,sh, dx:0,dy:0,dw:tw,dh:th};
     }
 
-    function loadBaseFromFile(file){
-      const img=new Image();
-      img.onload=()=>{ baseImage=fitImageCover(img, canvas.width); draw(); };
-      img.src=URL.createObjectURL(file);
-    }
+    function loadBaseFromFile(file){ const img=new Image(); img.onload=()=>{ baseImage=fitImageCover(img, canvas.width); draw(); }; img.src=URL.createObjectURL(file); }
+
+    function loadBackground(src){ const img=new Image(); img.onload=()=>{ bgImage=fitImageCover(img, canvas.width); draw(); }; img.src=src; }
+
+    function clearBackground(){ bgImage=null; draw(); }
 
     function buildPresetThumbs(){
-      const tray = document.getElementById('presetThumbs');
-      tray.innerHTML='';
+      const tray = document.getElementById('presetThumbs'); tray.innerHTML='';
       STICKERS.forEach(src=>{
-        const img = new Image();
-        img.src = src;
-        img.alt='sticker';
-        const cell = document.createElement('button');
-        cell.className='thumb';
-        cell.appendChild(img);
-        cell.addEventListener('click', ()=>{
-          const i=new Image();
-          i.crossOrigin='anonymous';
-          i.onload=()=>createSticker(i);
-          i.src=src;
-        });
+        const img = new Image(); img.src = src; img.alt='sticker';
+        const cell = document.createElement('button'); cell.className='thumb'; cell.appendChild(img);
+        cell.addEventListener('click', ()=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>createSticker(i); i.src=src; });
         tray.appendChild(cell);
       });
     }
 
-    // Mouse events
+    function buildBackgroundThumbs(){
+      const tray = document.getElementById('bgThumbs'); tray.innerHTML='';
+      BACKGROUNDS.forEach(src=>{
+        const img = new Image(); img.src = src; img.alt='background';
+        const cell = document.createElement('button'); cell.className='thumb'; cell.appendChild(img);
+        cell.addEventListener('click', ()=> loadBackground(src));
+        tray.appendChild(cell);
+      });
+    }
+
+    // Mouse
     canvas.addEventListener('mousedown', e=>{
-      const p=getPointer(e);
-      const s=selectedId?stickers.find(x=>x.id===selectedId):null;
-      if(s && pointInRect(p, handleRect(s))){
-        scaling=true; dragging=false;
-        scaleStart={dist:Math.hypot(p.x-s.x,p.y-s.y), scale:s.scale};
-        return;
-      }
-      for(let i=stickers.length-1;i>=0;i--){
-        const st=stickers[i];
-        if(pointInSticker(p,st)){
-          selectedId=st.id; draw();
-          dragging=true;
-          dragOffset={x:p.x-st.x,y:p.y-st.y};
-          const idx=stickers.indexOf(st);
-          stickers.splice(idx,1);
-          stickers.push(st);
-          return;
-        }
-      }
+      const p=getPointer(e); const s=selectedId?stickers.find(x=>x.id===selectedId):null;
+      if(s && pointInRect(p, handleRect(s))){ scaling=true; dragging=false; scaleStart={dist:Math.hypot(p.x-s.x,p.y-s.y), scale:s.scale}; return; }
+      for(let i=stickers.length-1;i>=0;i--){ const st=stickers[i]; if(pointInSticker(p,st)){ selectedId=st.id; draw(); dragging=true; dragOffset={x:p.x-st.x,y:p.y-st.y}; const idx=stickers.indexOf(st); stickers.splice(idx,1); stickers.push(st); return; } }
       selectedId=null; draw();
     });
-
-    canvas.addEventListener('mousemove', e=>{
-      const p=getPointer(e);
-      if(dragging && selectedId){
-        const s=stickers.find(x=>x.id===selectedId);
-        s.x=p.x-dragOffset.x; s.y=p.y-dragOffset.y; draw();
-      } else if(scaling && selectedId){
-        const s=stickers.find(x=>x.id===selectedId);
-        const d=Math.hypot(p.x-s.x,p.y-s.y);
-        s.scale=Math.max(0.1, Math.min(8, scaleStart.scale*(d/scaleStart.dist)));
-        $('#scaleRange').value=s.scale.toFixed(2);
-        draw();
-      }
-    });
-
+    canvas.addEventListener('mousemove', e=>{ const p=getPointer(e); if(dragging && selectedId){ const s=stickers.find(x=>x.id===selectedId); s.x=p.x-dragOffset.x; s.y=p.y-dragOffset.y; draw(); } else if(scaling && selectedId){ const s=stickers.find(x=>x.id===selectedId); const d=Math.hypot(p.x-s.x,p.y-s.y); s.scale=Math.max(0.1, Math.min(8, scaleStart.scale*(d/scaleStart.dist))); $('#scaleRange').value=s.scale.toFixed(2); draw(); } });
     window.addEventListener('mouseup', ()=>{ dragging=false; scaling=false; });
 
-    // Wheel scaling
-    canvas.addEventListener('wheel', e=>{
-      if(!selectedId) return;
-      const s=stickers.find(x=>x.id===selectedId);
-      const delta = e.deltaY<0?1.06:0.94;
-      s.scale=Math.max(0.1,Math.min(8,s.scale*delta));
-      $('#scaleRange').value=s.scale.toFixed(2);
-      draw();
-      e.preventDefault();
-    }, {passive:false});
+    // Wheel scale
+    canvas.addEventListener('wheel', e=>{ if(!selectedId) return; const s=stickers.find(x=>x.id===selectedId); const delta = e.deltaY<0?1.06:0.94; s.scale=Math.max(0.1,Math.min(8,s.scale*delta)); $('#scaleRange').value=s.scale.toFixed(2); draw(); e.preventDefault(); }, {passive:false});
 
     // UI
     $('#uploadBtn').addEventListener('click', ()=> $('#upload').click());
-    $('#upload').addEventListener('change', e=>{
-      const f=e.target.files[0];
-      if(f) loadBaseFromFile(f);
-    });
-
+    $('#upload').addEventListener('change', e=>{ const f=e.target.files[0]; if(f) loadBaseFromFile(f); });
     $('#exportBtn').addEventListener('click', exportPNG);
     $('#clearBtn').addEventListener('click', removeSelected);
+    $('#frontBtn').addEventListener('click', bringToFront);
+    $('#clearBgBtn').addEventListener('click', clearBackground);
     $$('.right [data-size]').forEach(btn=> btn.addEventListener('click', ()=> resizeCanvas(parseInt(btn.dataset.size,10))));
-    $('#scaleRange').addEventListener('input', e=>{
-      if(!selectedId) return;
-      const s=stickers.find(x=>x.id===selectedId);
-      s.scale=parseFloat(e.target.value);
-      draw();
-    });
+    $('#scaleRange').addEventListener('input', e=>{ if(!selectedId) return; const s=stickers.find(x=>x.id===selectedId); s.scale=parseFloat(e.target.value); draw(); });
 
-    function removeSelected(){
-      if(!selectedId) return;
-      const i=stickers.findIndex(x=>x.id===selectedId);
-      if(i>-1){ stickers.splice(i,1); selectedId=null; draw(); }
-    }
+    function bringToFront(){ if(!selectedId) return; const idx=stickers.findIndex(x=>x.id===selectedId); if(idx>-1){ const s=stickers.splice(idx,1)[0]; stickers.push(s); draw(); } }
+    function removeSelected(){ if(!selectedId) return; const i=stickers.findIndex(x=>x.id===selectedId); if(i>-1){ stickers.splice(i,1); selectedId=null; draw(); } }
 
     function resizeCanvas(size){
       const snapshot=document.createElement('canvas');
-      snapshot.width=canvas.width;
-      snapshot.height=canvas.height;
-      const sctx=snapshot.getContext('2d');
-      draw();
-      sctx.drawImage(canvas,0,0);
-      canvas.width=canvas.height=size;
-      if(baseImage){ baseImage=fitImageCover(baseImage.img, size);}
-      const k=size/snapshot.width;
-      stickers.forEach(st=>{ st.x*=k; st.y*=k; st.scale*=k; });
+      snapshot.width=canvas.width; snapshot.height=canvas.height; const sctx=snapshot.getContext('2d');
+      draw(); sctx.drawImage(canvas,0,0);
+      canvas.width = canvas.height = size;
+      if(baseImage){ baseImage = fitImageCover(baseImage.img, size); }
+      if(bgImage){ bgImage = fitImageCover(bgImage.img, size); }
+      const k=size / snapshot.width; stickers.forEach(st=>{ st.x*=k; st.y*=k; st.scale*=k; });
       draw();
     }
 
-    function exportPNG(){
-      draw();
-      const url=canvas.toDataURL('image/png');
-      const a=document.createElement('a');
-      const ts=new Date().toISOString().replace(/[:.]/g,'-');
-      a.download=`USDUT_PFP_${ts}_${canvas.width}x${canvas.height}.png`;
-      a.href=url;
-      a.click();
-    }
+    function exportPNG(){ draw(); const url=canvas.toDataURL('image/png'); const a=document.createElement('a'); const ts=new Date().toISOString().replace(/[:.]/g,'-'); a.download=`USDUT_PFP_${ts}_${canvas.width}x${canvas.height}.png`; a.href=url; a.click(); }
 
     // Init
+    buildBackgroundThumbs();
     buildPresetThumbs();
     draw();
   </script>
