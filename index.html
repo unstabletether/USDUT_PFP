@@ -108,7 +108,9 @@
       "/stickers/sticker1.png",
       "/stickers/sticker2.png",
       "/stickers/sticker3.png",
-      "/stickers/sticker4.png"
+      "/stickers/sticker4.png",
+      "/stickers/sticker5.png",
+      "/stickers/sticker6.png"
     ];
     // Backgrounds (drawn behind everything)
     const BACKGROUNDS = [
@@ -137,7 +139,7 @@
     let scaleStart={dist:0, scale:1};
     let rotateStart={base:0, angle0:0};
     const HANDLE_SIZE = 16;
-    const ROTATE_HANDLE_OFFSET = 30; // px above top edge (scaled space)
+    const ROTATE_HANDLE_OFFSET = 30;
     const ROTATE_HANDLE_RADIUS = 14;
 
     function getCanvasRect(){ return canvas.getBoundingClientRect(); }
@@ -158,13 +160,11 @@
       stickers.push(s); selectedId=id; syncControlsFromSelection(); draw();
     }
 
-    // --- Geometry helpers ---
     function toLocal(p, s){
-      // Convert screen point p to sticker local space (before scale/rotation)
       let x = p.x - s.x; let y = p.y - s.y;
       const ca = Math.cos(-s.angle), sa = Math.sin(-s.angle);
       const xr = x*ca - y*sa; const yr = x*sa + y*ca;
-      const sc = s.scale || 1e-6; // avoid /0
+      const sc = s.scale || 1e-6;
       return { x: xr / sc, y: yr / sc };
     }
 
@@ -183,13 +183,9 @@
 
     function draw(){
       ctx.clearRect(0,0,canvas.width,canvas.height);
-      // background first
       if(bgImage){ const b=bgImage; ctx.drawImage(b.img, b.sx,b.sy,b.sw,b.sh, b.dx,b.dy,b.dw,b.dh); }
-      // base image over background
       if(baseImage){ const b=baseImage; ctx.drawImage(b.img, b.sx,b.sy,b.sw,b.sh, b.dx,b.dy,b.dw,b.dh); }
-      // stickers on top
       for(const s of stickers){ drawSticker(s); }
-      // selection box + rotate handle
       if(selectedId){ const s=stickers.find(x=>x.id===selectedId); if(s) drawSelection(s); }
     }
 
@@ -198,8 +194,7 @@
       ctx.translate(s.x, s.y);
       ctx.rotate(s.angle);
       const sx = (s.flipX ? -1 : 1) * s.scale;
-      const sy = s.scale;
-      ctx.scale(sx, sy);
+      ctx.scale(sx, s.scale);
       ctx.drawImage(s.img, -s.w/2, -s.h/2, s.w, s.h);
       ctx.restore();
     }
@@ -213,7 +208,6 @@
       ctx.setLineDash([6,4]);
       ctx.strokeRect(-s.w/2 * s.scale, -s.h/2 * s.scale, s.w * s.scale, s.h * s.scale);
       ctx.setLineDash([]);
-      // rotate handle line + knob (top-center)
       const topY = -s.h/2 * s.scale;
       const hx = 0, hy = topY - ROTATE_HANDLE_OFFSET;
       ctx.beginPath(); ctx.moveTo(0, topY); ctx.lineTo(hx, hy); ctx.stroke();
@@ -250,21 +244,19 @@
       });
     }
 
-    // --- Events ---
     canvas.addEventListener('mousedown', e=>{
       const p=getPointer(e);
       const s=selectedId?stickers.find(x=>x.id===selectedId):null;
       if(s && isOnRotateHandle(p,s)){
-        rotating = true; dragging=false; scaling=false;
+        rotating = true; dragging=false;
         rotateStart = { base: Math.atan2(p.y - s.y, p.x - s.x), angle0: s.angle };
         return;
       }
-      // pick for dragging from topmost
       for(let i=stickers.length-1;i>=0;i--){
         const st=stickers[i];
         if(pointInSticker(p,st)){
           selectedId=st.id; syncControlsFromSelection(); draw();
-          dragging=true; scaling=false; rotating=false;
+          dragging=true; rotating=false;
           dragOffset={x:p.x-st.x,y:p.y-st.y};
           const idx=stickers.indexOf(st); stickers.splice(idx,1); stickers.push(st);
           return;
@@ -287,9 +279,8 @@
       }
     });
 
-    window.addEventListener('mouseup', ()=>{ dragging=false; scaling=false; rotating=false; });
+    window.addEventListener('mouseup', ()=>{ dragging=false; rotating=false; });
 
-    // Wheel scale
     canvas.addEventListener('wheel', e=>{
       if(!selectedId) return;
       const s=stickers.find(x=>x.id===selectedId);
@@ -300,7 +291,6 @@
       e.preventDefault();
     }, {passive:false});
 
-    // UI
     $('#uploadBtn').addEventListener('click', ()=> $('#upload').click());
     $('#upload').addEventListener('change', e=>{ const f=e.target.files[0]; if(f) loadBaseFromFile(f); });
     $('#exportBtn').addEventListener('click', exportPNG);
@@ -318,7 +308,7 @@
     $('#rotateRange').addEventListener('input', e => {
       if (!selectedId) return;
       const s = stickers.find(x => x.id === selectedId);
-      s.angle = parseFloat(e.target.value) * Math.PI / 180; // deg -> rad
+      s.angle = parseFloat(e.target.value) * Math.PI / 180;
       draw();
     });
 
@@ -354,7 +344,6 @@
       $('#rotateRange').value = (s.angle * 180 / Math.PI).toFixed(0);
     }
 
-    // Init
     buildBackgroundThumbs();
     buildPresetThumbs();
     draw();
