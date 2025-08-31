@@ -16,70 +16,46 @@
   header{padding:14px 18px; display:flex; gap:10px; align-items:center; border-bottom:1px solid var(--muted); background:var(--bg)}
   header h1{font-size:18px; margin:0; font-weight:700}
 
-  /* GRID AREAS */
-  main{
-    display:grid;
-    grid-template-areas:
-      "left canvas right";
-    grid-template-columns: 320px 1fr 320px;
-    gap:var(--gap);
-    padding:var(--gap);
-    flex:1; min-height:0;
-  }
-  aside{grid-area:left}
-  .canvas-wrap{grid-area:canvas}
-  .right{grid-area:right}
+  main{padding:var(--gap); display:flex; flex-direction:column; gap:var(--gap)}
 
-  aside, .right{
-    background:var(--panel); border:1px solid var(--muted); border-radius:12px; padding:12px;
-    min-height:0; display:flex; flex-direction:column;
-  }
-  .panel-scroll{min-height:0; overflow:auto; scrollbar-gutter:stable; padding-bottom:4px}
-  .canvas-wrap{
-    background:var(--panel); border:1px solid var(--muted); border-radius:14px; padding:14px;
-    display:flex; align-items:center; justify-content:center; min-height:0;
-  }
-
-  .controls label{display:block; font-size:12px; color:#5d6470; margin-bottom:6px}
-  .controls .row{display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap}
+  /* Card / pannelli */
+  .card{background:var(--panel); border:1px solid var(--muted); border-radius:14px; padding:14px}
+  .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  label{display:block; font-size:12px; color:#5d6470; margin-bottom:6px}
   input[type="file"]{display:none}
-  .btn{border:1px solid var(--muted); background:var(--accent); color:#fff; padding:10px 12px; border-radius:12px; cursor:pointer; font-weight:700; min-height:44px}
+  .btn{border:1px solid var(--muted); background:var(--accent); color:#fff; padding:12px 14px; border-radius:12px; cursor:pointer; font-weight:700; min-height:44px}
   .btn:hover{filter:brightness(0.95)}
-  .btn.block{display:block; width:100%}
   .btn.ghost{background:#fff; color:var(--text)}
+  .btn.block{display:block; width:100%}
+
+  /* Canvas */
+  .canvas-wrap{display:flex; justify-content:center; align-items:center}
+  canvas{border:1px solid var(--muted); border-radius:12px; background:#f9f9f9; touch-action:none; display:block}
+
+  /* Accordion */
+  details{border:1px solid var(--muted); border-radius:12px; background:#fff; overflow:hidden}
+  summary{
+    list-style:none; cursor:pointer; padding:14px; font-weight:800; display:flex; align-items:center; justify-content:space-between; gap:10px; user-select:none;
+    background:#fff; color:#0b0c10;
+  }
+  summary::-webkit-details-marker{display:none}
+  .chev{transition:transform .2s ease}
+  details[open] .chev{transform:rotate(180deg)}
+  .panel{padding:12px 12px 16px; border-top:1px solid var(--muted); background:#fff}
   .thumbs{display:grid; grid-template-columns: repeat(3,1fr); gap:10px}
   .thumb{background:#fafbff; border:1px dashed var(--muted); height:96px; border-radius:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; touch-action:manipulation}
   .thumb img{max-width:100%; max-height:100%}
-  canvas{border:1px solid var(--muted); border-radius:12px; background:#f9f9f9; touch-action:none; display:block}
-  .hr{height:1px; background:var(--muted); margin:12px 0}
+
+  /* Slider */
   input[type=range]{width:100%; height:44px; -webkit-tap-highlight-color:transparent}
 
-  /* TOOLBAR sticky su mobile */
-  .toolbar{
-    display:flex; gap:10px; flex-wrap:wrap;
-  }
+  /* Footer actions (in fondo alla pagina) */
+  .actions{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
+  @media (min-width: 520px){ .actions{grid-template-columns: repeat(4,1fr)} }
 
-  /* MOBILE */
-  @media (max-width: 960px){
-    main{
-      grid-template-areas:
-        "left"
-        "canvas"
-        "right";
-      grid-template-columns: 1fr;
-      gap:12px; padding:12px;
-    }
-    .thumbs{grid-template-columns: repeat(3,1fr)}
-    /* la toolbar resta visibile senza coprire il canvas */
-    .right{
-      position:sticky; bottom:0; z-index:5;
-      padding-bottom: calc(12px + env(safe-area-inset-bottom));
-      box-shadow: 0 -10px 24px rgba(0,0,0,.06);
-    }
-  }
-  @media (max-width: 600px){
-    .thumbs{grid-template-columns: repeat(2,1fr)}
-    header h1{font-size:16px}
+  /* Desktop migliorie */
+  @media (min-width: 980px){
+    main{max-width: 980px; margin: 0 auto}
   }
 </style>
 </head>
@@ -87,56 +63,56 @@
   <header><h1>USDUT PFP</h1></header>
 
   <main>
-    <!-- LEFT: Upload + Backgrounds + Stickers (scrollabile) -->
-    <aside>
-      <div class="panel-scroll">
-        <div class="controls">
-          <div class="row">
-            <label for="upload">Base Image (optional)</label>
-            <input id="upload" type="file" accept="image/*" />
-            <button class="btn block" id="uploadBtn">Upload Image…</button>
-          </div>
-
-          <div class="hr"></div>
-
-          <div class="row">
-            <label>Backgrounds</label>
-            <div id="bgThumbs" class="thumbs" aria-live="polite"></div>
-            <button class="btn ghost block" id="clearBgBtn" title="Remove background">No Background</button>
-          </div>
-
-          <div class="hr"></div>
-
-          <div class="row">
-            <label>Predefined Stickers</label>
-            <div id="presetThumbs" class="thumbs" aria-live="polite"></div>
-          </div>
+    <!-- Upload -->
+    <section class="card">
+      <div class="row" style="width:100%">
+        <div style="flex:1; min-width:220px">
+          <label for="upload">Base Image (optional)</label>
+          <input id="upload" type="file" accept="image/*" />
+          <button class="btn block" id="uploadBtn">Upload Image…</button>
         </div>
-      </div>
-    </aside>
-
-    <!-- CENTER: Canvas (logico 512, retina-aware) -->
-    <section class="canvas-wrap">
-      <canvas id="canvas"></canvas>
-    </section>
-
-    <!-- RIGHT: Tools (sticky su mobile, no overlap) -->
-    <section class="right">
-      <div class="controls">
-        <div class="toolbar">
-          <button class="btn" id="exportBtn" style="flex:1">Export PNG</button>
-          <button class="btn ghost" id="clearBtn" style="flex:1">Remove</button>
-          <button class="btn ghost" id="frontBtn" style="flex:1">Front</button>
-          <button class="btn ghost" id="flipBtn" style="flex:1">Flip</button>
-        </div>
-        <div class="row" style="margin-top:10px">
+        <div style="flex:1; min-width:220px">
           <label for="scaleRange">Scale</label>
           <input id="scaleRange" type="range" min="1e-6" max="4" step="1e-6" value="1" />
         </div>
-        <div class="row">
+        <div style="flex:1; min-width:220px">
           <label for="rotateRange">Rotate</label>
           <input id="rotateRange" type="range" min="-180" max="180" step="1" value="0" />
         </div>
+      </div>
+    </section>
+
+    <!-- Canvas -->
+    <section class="card canvas-wrap">
+      <canvas id="canvas"></canvas>
+    </section>
+
+    <!-- Accordion Backgrounds -->
+    <details class="card">
+      <summary>Backgrounds <span class="chev">▾</span></summary>
+      <div class="panel">
+        <div class="row" style="margin-bottom:10px">
+          <button class="btn ghost" id="clearBgBtn">No Background</button>
+        </div>
+        <div id="bgThumbs" class="thumbs" aria-live="polite"></div>
+      </div>
+    </details>
+
+    <!-- Accordion Stickers -->
+    <details class="card">
+      <summary>Stickers <span class="chev">▾</span></summary>
+      <div class="panel">
+        <div id="presetThumbs" class="thumbs" aria-live="polite"></div>
+      </div>
+    </details>
+
+    <!-- BOTTINI in fondo alla pagina -->
+    <section class="card">
+      <div class="actions">
+        <button class="btn" id="exportBtn">Export PNG</button>
+        <button class="btn ghost" id="clearBtn">Remove</button>
+        <button class="btn ghost" id="frontBtn">Front</button>
+        <button class="btn ghost" id="flipBtn">Flip</button>
       </div>
     </section>
   </main>
@@ -157,13 +133,11 @@
   const ctx = canvas.getContext('2d', { alpha: true });
   const CANVAS_SIZE = 512;
 
-  // HiDPI + misura sul contenitore (evita overlap)
+  // HiDPI: adatta il canvas alla larghezza della sua card, non della finestra
   function setupHiDPI(){
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     const container = document.querySelector('.canvas-wrap');
-    // calcola lo spazio disponibile nel contenitore
-    const containerW = Math.max(280, container.clientWidth - 4); // padding/linea
-    // limitiamoci alla larghezza del contenitore (alto è libero)
+    const containerW = Math.max(280, container.clientWidth - 4);
     const cssSize = Math.min(containerW, 720);
     canvas.style.width = cssSize + 'px';
     canvas.style.height = cssSize + 'px';
@@ -206,8 +180,7 @@
     const p2 = { x:(b.clientX-rect.left)*scaleX, y:(b.clientY-rect.top)*scaleY };
     const dist = Math.hypot(p1.x-p2.x, p1.y-p2.y);
     const angle = Math.atan2(p2.y-p1.y, p2.x-p1.x);
-    const mid = { x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2 };
-    return { p1, p2, dist, angle, mid };
+    return { dist, angle };
   }
 
   function createSticker(img){
@@ -269,7 +242,7 @@
 
   function fitImageCover(img, target){
     const tw=target, th=target, iw=img.width, ih=img.height;
-    const sc=Math.max(tw/iw, th/ih); const sw=tw/sc, sh=th/sc; const sx=(iw-sw)/2, sy=(ih-sh)/2;
+    const sc=Math.max(tw/iw, th/ih), sw=tw/sc, sh=th/sc, sx=(iw-sw)/2, sy=(ih-sh)/2;
     return {img, sx,sy,sw,sh, dx:0,dy:0,dw:tw,dh:th};
   }
   function loadBaseFromFile(file){ const img=new Image(); img.onload=()=>{ baseImage=fitImageCover(img, CANVAS_SIZE); draw(); }; img.src=URL.createObjectURL(file); }
@@ -351,7 +324,7 @@
       if(pointInSticker(p,st)){
         selectedId=st.id; syncControlsFromSelection(); draw();
         dragging=true; rotating=false;
-        dragOffset={x:p.x-st.x,y:p.y-st.y};
+        dragOffset={x:p.x-st.x,y:p.y-st-y};
         const idx=stickers.indexOf(st); stickers.splice(idx,1); stickers.push(st);
         e.preventDefault(); return;
       }
@@ -430,9 +403,16 @@
     $('#rotateRange').value = (s.angle * 180 / Math.PI).toFixed(0);
   }
 
-  // Build lists + layout
-  buildBackgroundThumbs();
-  buildPresetThumbs();
+  function buildLists(){
+    const bg = document.getElementById('bgThumbs');
+    const st = document.getElementById('presetThumbs');
+    if(!bg || !st) return;
+    buildBackgroundThumbs();
+    buildPresetThumbs();
+  }
+
+  // Init
+  buildLists();
   setupHiDPI();
 </script>
 </body>
