@@ -7,6 +7,7 @@
 <style>
   :root{
     --bg:#ffffff; --text:#0b0c10; --muted:#e6e8ef; --panel:#ffffff; --accent:#00b094;
+    --gap:14px;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -15,53 +16,70 @@
   header{padding:14px 18px; display:flex; gap:10px; align-items:center; border-bottom:1px solid var(--muted); background:var(--bg)}
   header h1{font-size:18px; margin:0; font-weight:700}
 
+  /* GRID AREAS */
   main{
-    display:grid; grid-template-columns: 320px 1fr 320px; gap:14px; padding:14px; flex:1; min-height:0;
+    display:grid;
+    grid-template-areas:
+      "left canvas right";
+    grid-template-columns: 320px 1fr 320px;
+    gap:var(--gap);
+    padding:var(--gap);
+    flex:1; min-height:0;
   }
-  aside, .right{background:var(--panel); border:1px solid var(--muted); border-radius:12px; padding:12px; min-height:0}
-  .canvas-wrap{background:var(--panel); border:1px solid var(--muted); border-radius:14px; padding:14px; display:flex; align-items:center; justify-content:center; min-height:0}
+  aside{grid-area:left}
+  .canvas-wrap{grid-area:canvas}
+  .right{grid-area:right}
+
+  aside, .right{
+    background:var(--panel); border:1px solid var(--muted); border-radius:12px; padding:12px;
+    min-height:0; display:flex; flex-direction:column;
+  }
+  .panel-scroll{min-height:0; overflow:auto; scrollbar-gutter:stable; padding-bottom:4px}
+  .canvas-wrap{
+    background:var(--panel); border:1px solid var(--muted); border-radius:14px; padding:14px;
+    display:flex; align-items:center; justify-content:center; min-height:0;
+  }
 
   .controls label{display:block; font-size:12px; color:#5d6470; margin-bottom:6px}
-  .controls .row{display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap}
+  .controls .row{display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap}
   input[type="file"]{display:none}
   .btn{border:1px solid var(--muted); background:var(--accent); color:#fff; padding:10px 12px; border-radius:12px; cursor:pointer; font-weight:700; min-height:44px}
   .btn:hover{filter:brightness(0.95)}
   .btn.block{display:block; width:100%}
   .btn.ghost{background:#fff; color:var(--text)}
   .thumbs{display:grid; grid-template-columns: repeat(3,1fr); gap:10px}
-  .thumb{background:#fafbff; border:1px dashed var(--muted); height:88px; border-radius:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; touch-action:manipulation}
+  .thumb{background:#fafbff; border:1px dashed var(--muted); height:96px; border-radius:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; touch-action:manipulation}
   .thumb img{max-width:100%; max-height:100%}
-  canvas{border:1px solid var(--muted); border-radius:12px; background:#f9f9f9; touch-action:none}
+  canvas{border:1px solid var(--muted); border-radius:12px; background:#f9f9f9; touch-action:none; display:block}
   .hr{height:1px; background:var(--muted); margin:12px 0}
   input[type=range]{width:100%; height:44px; -webkit-tap-highlight-color:transparent}
 
-  /* Accordion (details/summary) */
-  details { border:1px solid var(--muted); border-radius:12px; background:#fff; }
-  details + details { margin-top:10px; }
-  summary {
-    list-style:none; cursor:pointer; padding:10px 12px; font-weight:700;
-    color:var(--text); display:flex; align-items:center; gap:8px;
+  /* TOOLBAR sticky su mobile */
+  .toolbar{
+    display:flex; gap:10px; flex-wrap:wrap;
   }
-  summary::-webkit-details-marker { display:none }
-  summary:after { content:"▾"; margin-left:auto; transition:transform .2s }
-  details[open] summary:after { transform:rotate(180deg) }
-  .section-body { padding:10px 12px 12px; border-top:1px solid var(--muted); }
-  .thumbs.scrollable { max-height: 40vh; overflow:auto; }
 
-  /* Responsive */
+  /* MOBILE */
   @media (max-width: 960px){
-    main{grid-template-columns: 1fr; gap:12px; padding:12px}
-    aside, .right{order:0}
-    .canvas-wrap{order:1}
+    main{
+      grid-template-areas:
+        "left"
+        "canvas"
+        "right";
+      grid-template-columns: 1fr;
+      gap:12px; padding:12px;
+    }
     .thumbs{grid-template-columns: repeat(3,1fr)}
+    /* la toolbar resta visibile senza coprire il canvas */
+    .right{
+      position:sticky; bottom:0; z-index:5;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      box-shadow: 0 -10px 24px rgba(0,0,0,.06);
+    }
   }
   @media (max-width: 600px){
     .thumbs{grid-template-columns: repeat(2,1fr)}
     header h1{font-size:16px}
-    .right{position:sticky; bottom:0; z-index:5; box-shadow:0 -8px 24px rgba(0,0,0,.06)}
-  }
-  @media (min-width: 961px){
-    .thumbs.scrollable { max-height: 50vh; }
   }
 </style>
 </head>
@@ -69,51 +87,49 @@
   <header><h1>USDUT PFP</h1></header>
 
   <main>
-    <!-- LEFT: Upload + Accordion (Backgrounds + Stickers) -->
+    <!-- LEFT: Upload + Backgrounds + Stickers (scrollabile) -->
     <aside>
-      <div class="controls">
-        <div class="row">
-          <label for="upload">Base Image (optional)</label>
-          <input id="upload" type="file" accept="image/*" />
-          <button class="btn block" id="uploadBtn">Upload Image…</button>
-        </div>
+      <div class="panel-scroll">
+        <div class="controls">
+          <div class="row">
+            <label for="upload">Base Image (optional)</label>
+            <input id="upload" type="file" accept="image/*" />
+            <button class="btn block" id="uploadBtn">Upload Image…</button>
+          </div>
 
-        <div class="hr"></div>
+          <div class="hr"></div>
 
-        <!-- Backgrounds (accordion) -->
-        <details class="auto-open" id="bgPanel">
-          <summary>Backgrounds</summary>
-          <div class="section-body">
-            <div id="bgThumbs" class="thumbs scrollable" aria-live="polite"></div>
+          <div class="row">
+            <label>Backgrounds</label>
+            <div id="bgThumbs" class="thumbs" aria-live="polite"></div>
             <button class="btn ghost block" id="clearBgBtn" title="Remove background">No Background</button>
           </div>
-        </details>
 
-        <!-- Stickers (accordion) -->
-        <details class="auto-open" id="stkPanel">
-          <summary>Predefined Stickers</summary>
-          <div class="section-body">
-            <div id="presetThumbs" class="thumbs scrollable" aria-live="polite"></div>
+          <div class="hr"></div>
+
+          <div class="row">
+            <label>Predefined Stickers</label>
+            <div id="presetThumbs" class="thumbs" aria-live="polite"></div>
           </div>
-        </details>
+        </div>
       </div>
     </aside>
 
-    <!-- CENTER: Canvas (logical 512x512, retina-aware) -->
+    <!-- CENTER: Canvas (logico 512, retina-aware) -->
     <section class="canvas-wrap">
       <canvas id="canvas"></canvas>
     </section>
 
-    <!-- RIGHT: Tools -->
+    <!-- RIGHT: Tools (sticky su mobile, no overlap) -->
     <section class="right">
       <div class="controls">
-        <div class="row" style="gap:10px; justify-content:space-between">
+        <div class="toolbar">
           <button class="btn" id="exportBtn" style="flex:1">Export PNG</button>
           <button class="btn ghost" id="clearBtn" style="flex:1">Remove</button>
           <button class="btn ghost" id="frontBtn" style="flex:1">Front</button>
           <button class="btn ghost" id="flipBtn" style="flex:1">Flip</button>
         </div>
-        <div class="row">
+        <div class="row" style="margin-top:10px">
           <label for="scaleRange">Scale</label>
           <input id="scaleRange" type="range" min="1e-6" max="4" step="1e-6" value="1" />
         </div>
@@ -134,73 +150,57 @@
   ];
   const BACKGROUNDS = ["/stickers/bg1.png","/stickers/bg2.png","/stickers/bg3.png","/stickers/bg4.png"];
 
-  // === Utilities & elements ===
+  // === Utilities ===
   const $ = (sel, root=document) => root.querySelector(sel);
+
   const canvas = $('#canvas');
   const ctx = canvas.getContext('2d', { alpha: true });
-
-  // Logical canvas size (export size)
   const CANVAS_SIZE = 512;
 
-  // HiDPI setup: internal pixels = logical * dpr, keep CSS size fluid
+  // HiDPI + misura sul contenitore (evita overlap)
   function setupHiDPI(){
     const dpr = Math.max(1, window.devicePixelRatio || 1);
-    // CSS size responsive (square)
-    const containerMax = Math.min(600, Math.floor(window.innerWidth - 48)); // cap CSS size for mobile
-    const cssSize = Math.max(280, containerMax);
+    const container = document.querySelector('.canvas-wrap');
+    // calcola lo spazio disponibile nel contenitore
+    const containerW = Math.max(280, container.clientWidth - 4); // padding/linea
+    // limitiamoci alla larghezza del contenitore (alto è libero)
+    const cssSize = Math.min(containerW, 720);
     canvas.style.width = cssSize + 'px';
     canvas.style.height = cssSize + 'px';
-
     canvas.width  = CANVAS_SIZE * dpr;
     canvas.height = CANVAS_SIZE * dpr;
-    ctx.setTransform(dpr,0,0,dpr,0,0); // draw in logical coordinates
+    ctx.setTransform(dpr,0,0,dpr,0,0);
     draw();
   }
   window.addEventListener('resize', setupHiDPI);
 
-  // Auto-open accordions on desktop, closed on mobile
-  function syncAccordionState(){
-    const isDesktop = window.matchMedia('(min-width: 961px)').matches;
-    const panels = [document.getElementById('bgPanel'), document.getElementById('stkPanel')];
-    panels.forEach(p => {
-      if(!p) return;
-      if(isDesktop) p.setAttribute('open',''); else p.removeAttribute('open');
-    });
-  }
-  window.addEventListener('resize', syncAccordionState);
-
   // Base layers
-  let baseImage = null; // fitted to cover
-  let bgImage = null;   // fitted to cover
+  let baseImage = null, bgImage = null;
 
-  // Stickers (rotation + flip)
+  // Stickers
   const stickers = []; // {id,img,x,y,scale,w,h,angle,flipX}
   let selectedId = null;
 
-  // Gestures state
+  // Gestures
   let dragging=false, rotating=false;
   let dragOffset={x:0,y:0};
   let rotateStart={base:0, angle0:0};
   let pinch = { active:false, dist0:0, angle0:0, scale0:1, angleStart:0 };
 
-  const ROTATE_HANDLE_OFFSET = 30;
-  const ROTATE_HANDLE_RADIUS = 14;
+  const ROTATE_HANDLE_OFFSET = 30, ROTATE_HANDLE_RADIUS = 14;
 
   function getPointer(e){
     const rect = canvas.getBoundingClientRect();
-    const scaleX = CANVAS_SIZE / rect.width;
-    const scaleY = CANVAS_SIZE / rect.height;
+    const scaleX = CANVAS_SIZE / rect.width, scaleY = CANVAS_SIZE / rect.height;
     if(e.touches && e.touches.length){
       const t=e.touches[0];
       return {x:(t.clientX-rect.left)*scaleX, y:(t.clientY-rect.top)*scaleY};
     }
     return {x:(e.clientX-rect.left)*scaleX, y:(e.clientY-rect.top)*scaleY};
   }
-
   function getTwoTouchData(e){
     const rect = canvas.getBoundingClientRect();
-    const scaleX = CANVAS_SIZE / rect.width;
-    const scaleY = CANVAS_SIZE / rect.height;
+    const scaleX = CANVAS_SIZE / rect.width, scaleY = CANVAS_SIZE / rect.height;
     const a = e.touches[0], b = e.touches[1];
     const p1 = { x:(a.clientX-rect.left)*scaleX, y:(a.clientY-rect.top)*scaleY };
     const p2 = { x:(b.clientX-rect.left)*scaleX, y:(b.clientY-rect.top)*scaleY };
@@ -219,9 +219,9 @@
   }
 
   function toLocal(p, s){
-    let x = p.x - s.x; let y = p.y - s.y;
+    let x = p.x - s.x, y = p.y - s.y;
     const ca = Math.cos(-s.angle), sa = Math.sin(-s.angle);
-    const xr = x*ca - y*sa; const yr = x*sa + y*ca;
+    const xr = x*ca - y*sa, yr = x*sa + y*ca;
     const sc = s.scale || 1e-6;
     return { x: xr / sc, y: yr / sc };
   }
@@ -231,10 +231,8 @@
   }
   function isOnRotateHandle(p, s){
     const lp = toLocal(p, s);
-    const hx = 0;
-    const hy = -s.h/2 - ROTATE_HANDLE_OFFSET;
-    const d = Math.hypot(lp.x - hx, lp.y - hy);
-    return d <= ROTATE_HANDLE_RADIUS;
+    const hx = 0, hy = -s.h/2 - ROTATE_HANDLE_OFFSET;
+    return Math.hypot(lp.x - hx, lp.y - hy) <= ROTATE_HANDLE_RADIUS;
   }
 
   function draw(){
@@ -333,14 +331,13 @@
   });
   window.addEventListener('mouseup', ()=>{ dragging=false; rotating=false; });
 
-  // Touch gestures: pinch to scale + 2-finger rotate
+  // Touch (pinch+rotate)
   canvas.addEventListener('touchstart', e=>{
     if(e.touches.length===2 && selectedId){
       const s = stickers.find(x=>x.id===selectedId);
       const {dist, angle} = getTwoTouchData(e);
       pinch = { active:true, dist0:dist, angle0:angle, scale0:s.scale, angleStart:s.angle };
-      e.preventDefault();
-      return;
+      e.preventDefault(); return;
     }
     const p=getPointer(e);
     const s=selectedId?stickers.find(x=>x.id===selectedId):null;
@@ -361,7 +358,6 @@
     }
     selectedId=null; draw();
   }, {passive:false});
-
   canvas.addEventListener('touchmove', e=>{
     if(pinch.active && e.touches.length===2 && selectedId){
       const s = stickers.find(x=>x.id===selectedId);
@@ -380,13 +376,9 @@
       s.x=p.x-dragOffset.x; s.y=p.y-dragOffset.y; draw(); e.preventDefault();
     }
   }, {passive:false});
+  window.addEventListener('touchend', ()=>{ if(pinch.active) pinch.active=false; dragging=false; rotating=false; });
 
-  window.addEventListener('touchend', ()=>{
-    if(pinch.active) pinch.active=false;
-    dragging=false; rotating=false;
-  });
-
-  // Wheel scale (desktop)
+  // Wheel (desktop)
   canvas.addEventListener('wheel', e=>{
     if(!selectedId) return;
     const s=stickers.find(x=>x.id===selectedId);
@@ -420,7 +412,6 @@
 
   function exportPNG(){
     draw();
-    // Export at exact 512x512 regardless of DPR
     const out = document.createElement('canvas');
     out.width = out.height = CANVAS_SIZE;
     const octx = out.getContext('2d');
@@ -429,8 +420,7 @@
     const url=out.toDataURL('image/png');
     const a=document.createElement('a');
     const ts=new Date().toISOString().replace(/[:.]/g,'-');
-    a.download=`USDUT_PFP_${ts}_${CANVAS_SIZE}x${CANVAS_SIZE}.png`;
-    a.href=url; a.click();
+    a.download=`USDUT_PFP_${ts}_${CANVAS_SIZE}x${CANVAS_SIZE}.png`; a.href=url; a.click();
   }
 
   function syncControlsFromSelection(){
@@ -440,13 +430,10 @@
     $('#rotateRange').value = (s.angle * 180 / Math.PI).toFixed(0);
   }
 
-  // Init
-  document.addEventListener('DOMContentLoaded', ()=>{
-    buildBackgroundThumbs();
-    buildPresetThumbs();
-    syncAccordionState();
-    setupHiDPI();
-  });
+  // Build lists + layout
+  buildBackgroundThumbs();
+  buildPresetThumbs();
+  setupHiDPI();
 </script>
 </body>
 </html>
