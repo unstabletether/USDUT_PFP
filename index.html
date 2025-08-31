@@ -1,48 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>USDUT PFP — PNG Stickers</title>
-  <style>
-    :root{
-      --bg:#ffffff;
-      --text:#0b0c10;
-      --muted:#e6e8ef;
-      --panel:#ffffff;
-      --accent:#00b094;
-    }
-    *{box-sizing:border-box}
-    body{margin:0; background:var(--bg); color:var(--text); font-family:Arial, sans-serif; display:flex; flex-direction:column; height:100%}
-    header{padding:14px 18px; display:flex; gap:10px; align-items:center; border-bottom:1px solid var(--muted); background:var(--bg)}
-    header h1{font-size:18px; margin:0; font-weight:700}
-    main{display:grid; grid-template-columns: 300px 1fr 300px; gap:14px; padding:14px; height:100%}
-    aside, .right{background:var(--panel); border:1px solid var(--muted); border-radius:12px; padding:12px}
-    .canvas-wrap{background:var(--panel); border:1px solid var(--muted); border-radius:14px; padding:14px; display:flex; align-items:center; justify-content:center}
-    .controls label{display:block; font-size:12px; color:#5d6470; margin-bottom:4px}
-    .controls .row{display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap}
-    input[type="file"]{display:none}
-    .btn{border:1px solid var(--muted); background:var(--accent); color:#fff; padding:8px 10px; border-radius:10px; cursor:pointer; font-weight:600}
-    .btn:hover{filter:brightness(0.95)}
-    .btn.block{display:block; width:100%}
-    .btn.ghost{background:#fff; color:var(--text)}
-    .thumbs{display:grid; grid-template-columns: repeat(3,1fr); gap:8px}
-    .thumb{background:#fafbff; border:1px dashed var(--muted); height:70px; border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden}
-    .thumb img{max-width:100%; max-height:100%}
-    canvas{border:1px solid var(--muted); border-radius:12px; background:#f9f9f9}
-    .hr{height:1px; background:var(--muted); margin:12px 0}
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>USDUT PFP — PNG Stickers</title>
+<style>
+  :root{
+    --bg:#ffffff; --text:#0b0c10; --muted:#e6e8ef; --panel:#ffffff; --accent:#00b094;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; display:flex; flex-direction:column}
+
+  header{padding:14px 18px; display:flex; gap:10px; align-items:center; border-bottom:1px solid var(--muted); background:var(--bg)}
+  header h1{font-size:18px; margin:0; font-weight:700}
+
+  main{
+    display:grid; grid-template-columns: 320px 1fr 320px; gap:14px; padding:14px; flex:1; min-height:0;
+  }
+  aside, .right{background:var(--panel); border:1px solid var(--muted); border-radius:12px; padding:12px; min-height:0}
+  .canvas-wrap{background:var(--panel); border:1px solid var(--muted); border-radius:14px; padding:14px; display:flex; align-items:center; justify-content:center; min-height:0}
+
+  .controls label{display:block; font-size:12px; color:#5d6470; margin-bottom:4px}
+  .controls .row{display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap}
+  input[type="file"]{display:none}
+  .btn{border:1px solid var(--muted); background:var(--accent); color:#fff; padding:10px 12px; border-radius:12px; cursor:pointer; font-weight:700; min-height:44px}
+  .btn:hover{filter:brightness(0.95)}
+  .btn.block{display:block; width:100%}
+  .btn.ghost{background:#fff; color:var(--text)}
+  .thumbs{display:grid; grid-template-columns: repeat(3,1fr); gap:10px}
+  .thumb{background:#fafbff; border:1px dashed var(--muted); height:88px; border-radius:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; touch-action:manipulation}
+  .thumb img{max-width:100%; max-height:100%}
+  canvas{border:1px solid var(--muted); border-radius:12px; background:#f9f9f9; touch-action:none}
+  .hr{height:1px; background:var(--muted); margin:12px 0}
+  input[type=range]{width:100%; height:44px; -webkit-tap-highlight-color:transparent}
+
+  /* Mobile responsive */
+  @media (max-width: 960px){
+    main{grid-template-columns: 1fr; gap:12px; padding:12px}
+    aside, .right{order:0}
+    .canvas-wrap{order:1}
+    .thumbs{grid-template-columns: repeat(3,1fr)}
+  }
+  @media (max-width: 600px){
+    .thumbs{grid-template-columns: repeat(2,1fr)}
+    header h1{font-size:16px}
+  }
+
+  /* Sticky bottom toolbar on mobile */
+  @media (max-width: 600px){
+    .right{position:sticky; bottom:0; z-index:5; box-shadow:0 -8px 24px rgba(0,0,0,.06)}
+  }
+</style>
 </head>
 <body>
-  <header>
-    <h1>USDUT PFP</h1>
-  </header>
+  <header><h1>USDUT PFP</h1></header>
 
   <main>
     <!-- LEFT: Upload + Backgrounds + Stickers -->
     <aside>
       <div class="controls">
-        <!-- Base image upload -->
         <div class="row">
           <label for="upload">Base Image (optional)</label>
           <input id="upload" type="file" accept="image/*" />
@@ -51,7 +68,6 @@
 
         <div class="hr"></div>
 
-        <!-- Background chooser -->
         <div class="row">
           <label>Backgrounds</label>
           <div id="bgThumbs" class="thumbs" aria-live="polite"></div>
@@ -60,7 +76,6 @@
 
         <div class="hr"></div>
 
-        <!-- Stickers -->
         <div class="row">
           <label>Predefined Stickers</label>
           <div id="presetThumbs" class="thumbs" aria-live="polite"></div>
@@ -68,286 +83,350 @@
       </div>
     </aside>
 
-    <!-- CENTER: Canvas -->
+    <!-- CENTER: Canvas (logical 512x512, retina-aware) -->
     <section class="canvas-wrap">
-      <!-- Canvas fisso 512×512 -->
-      <canvas id="canvas" width="512" height="512"></canvas>
+      <canvas id="canvas"></canvas>
     </section>
 
     <!-- RIGHT: Tools -->
     <section class="right">
       <div class="controls">
-        <div class="row">
-          <button class="btn" id="exportBtn">Export PNG</button>
-          <button class="btn ghost" id="clearBtn">Remove Selected</button>
-          <button class="btn ghost" id="frontBtn">Bring to Front</button>
-          <button class="btn ghost" id="flipBtn">Flip Horizontal</button>
+        <div class="row" style="gap:10px; justify-content:space-between">
+          <button class="btn" id="exportBtn" style="flex:1">Export PNG</button>
+          <button class="btn ghost" id="clearBtn" style="flex:1">Remove</button>
+          <button class="btn ghost" id="frontBtn" style="flex:1">Front</button>
+          <button class="btn ghost" id="flipBtn" style="flex:1">Flip</button>
         </div>
         <div class="row">
-          <label for="scaleRange">Scale Sticker</label>
+          <label for="scaleRange">Scale</label>
           <input id="scaleRange" type="range" min="1e-6" max="4" step="1e-6" value="1" />
         </div>
         <div class="row">
-          <label for="rotateRange">Rotate Sticker</label>
+          <label for="rotateRange">Rotate</label>
           <input id="rotateRange" type="range" min="-180" max="180" step="1" value="0" />
         </div>
       </div>
     </section>
   </main>
 
-  <script>
-    // === CONFIG ===
-    // Stickers (overlay elements)
-    const STICKERS = [
-      "/stickers/sticker1.png",
-      "/stickers/sticker2.png",
-      "/stickers/sticker3.png",
-      "/stickers/sticker4.png",
-      "/stickers/sticker5.png",
-      "/stickers/sticker6.png",
-      "/stickers/sticker7.png",
-      "/stickers/sticker8.png",
-      "/stickers/sticker9.png",
-      "/stickers/sticker10.png",
-      "/stickers/sticker11.png",
-      "/stickers/sticker12.png"
-    ];
-    // Backgrounds (drawn behind everything)
-    const BACKGROUNDS = [
-      "/stickers/bg1.png",
-      "/stickers/bg2.png",
-      "/stickers/bg3.png",
-      "/stickers/bg4.png"
-    ];
+<script>
+  // === CONFIG ===
+  const STICKERS = [
+    "/stickers/sticker1.png","/stickers/sticker2.png","/stickers/sticker3.png","/stickers/sticker4.png",
+    "/stickers/sticker5.png","/stickers/sticker6.png","/stickers/sticker7.png","/stickers/sticker8.png",
+    "/stickers/sticker9.png","/stickers/sticker10.png","/stickers/sticker11.png","/stickers/sticker12.png"
+  ];
+  const BACKGROUNDS = ["/stickers/bg1.png","/stickers/bg2.png","/stickers/bg3.png","/stickers/bg4.png"];
 
-    // === Utilities ===
-    const $ = (sel, root=document) => root.querySelector(sel);
-    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+  // === Utilities ===
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const canvas = $('#canvas');
+  const ctx = canvas.getContext('2d', { alpha: true });
 
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+  // Logical canvas size (export size)
+  const CANVAS_SIZE = 512;
 
-    // Base image (optional) and background layer
-    let baseImage = null; // fitted to cover
-    let bgImage = null;   // fitted to cover
+  // HiDPI setup: internal pixels = logical * dpr, keep CSS size fluid
+  function setupHiDPI(){
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    // set CSS size to fit container while keeping aspect ratio square
+    const maxCss = Math.min(512, Math.floor(window.innerWidth - 48)); // safe padding on mobile
+    const cssSize = Math.max(280, maxCss); // minimum comfortable size
+    canvas.style.width = cssSize + 'px';
+    canvas.style.height = cssSize + 'px';
 
-    // Stickers state (supports rotation and horizontal flip)
-    const stickers = []; // {id,img,x,y,scale,w,h,angle,flipX}
-    let selectedId = null;
-    let dragging=false, rotating=false;
-    let dragOffset={x:0,y:0};
-    let rotateStart={base:0, angle0:0};
-    const ROTATE_HANDLE_OFFSET = 30;
-    const ROTATE_HANDLE_RADIUS = 14;
+    canvas.width  = CANVAS_SIZE * dpr;
+    canvas.height = CANVAS_SIZE * dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0); // draw in logical 512 coords
+    draw();
+  }
+  window.addEventListener('resize', setupHiDPI);
 
-    function getCanvasRect(){ return canvas.getBoundingClientRect(); }
-    function getPointer(e){
-      const r = getCanvasRect();
-      if(e.touches && e.touches.length){
-        const t=e.touches[0];
-        return {x:(t.clientX-r.left)*(canvas.width/r.width), y:(t.clientY-r.top)*(canvas.height/r.height)};
-      }
-      return {x:(e.clientX-r.left)*(canvas.width/r.width), y:(e.clientY-r.top)*(canvas.height/r.height)};
+  // Base layers
+  let baseImage = null; // fitted to cover
+  let bgImage = null;   // fitted to cover
+
+  // Stickers (rotation + flip)
+  const stickers = []; // {id,img,x,y,scale,w,h,angle,flipX}
+  let selectedId = null;
+
+  // Gestures state
+  let dragging=false, rotating=false;
+  let dragOffset={x:0,y:0};
+  let rotateStart={base:0, angle0:0};
+  let pinch = { active:false, dist0:0, angle0:0, scale0:1, angleStart:0 };
+
+  const ROTATE_HANDLE_OFFSET = 30;
+  const ROTATE_HANDLE_RADIUS = 14;
+
+  function getPointer(e){
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = CANVAS_SIZE / rect.width;
+    const scaleY = CANVAS_SIZE / rect.height;
+    if(e.touches && e.touches.length){
+      const t=e.touches[0];
+      return {x:(t.clientX-rect.left)*scaleX, y:(t.clientY-rect.top)*scaleY};
     }
+    return {x:(e.clientX-rect.left)*scaleX, y:(e.clientY-rect.top)*scaleY};
+  }
 
-    function createSticker(img){
-      const id = crypto.randomUUID();
-      const maxSide = Math.max(img.width, img.height);
-      const initScale = Math.min(1, (canvas.width*0.35)/maxSide);
-      const s = { id, img, x: canvas.width/2, y: canvas.height/2, scale: initScale, w: img.width, h: img.height, angle: 0, flipX: false };
-      stickers.push(s); selectedId=id; syncControlsFromSelection(); draw();
+  function getTwoTouchData(e){
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = CANVAS_SIZE / rect.width;
+    const scaleY = CANVAS_SIZE / rect.height;
+    const a = e.touches[0], b = e.touches[1];
+    const p1 = { x:(a.clientX-rect.left)*scaleX, y:(a.clientY-rect.top)*scaleY };
+    const p2 = { x:(b.clientX-rect.left)*scaleX, y:(b.clientY-rect.top)*scaleY };
+    const dist = Math.hypot(p1.x-p2.x, p1.y-p2.y);
+    const angle = Math.atan2(p2.y-p1.y, p2.x-p1.x);
+    const mid = { x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2 };
+    return { p1, p2, dist, angle, mid };
+  }
+
+  function createSticker(img){
+    const id = crypto.randomUUID();
+    const maxSide = Math.max(img.width, img.height);
+    const initScale = Math.min(1, (CANVAS_SIZE*0.35)/maxSide);
+    const s = { id, img, x: CANVAS_SIZE/2, y: CANVAS_SIZE/2, scale: initScale, w: img.width, h: img.height, angle: 0, flipX: false };
+    stickers.push(s); selectedId=id; syncControlsFromSelection(); draw();
+  }
+
+  function toLocal(p, s){
+    let x = p.x - s.x; let y = p.y - s.y;
+    const ca = Math.cos(-s.angle), sa = Math.sin(-s.angle);
+    const xr = x*ca - y*sa; const yr = x*sa + y*ca;
+    const sc = s.scale || 1e-6;
+    return { x: xr / sc, y: yr / sc };
+  }
+  function pointInSticker(p, s){
+    const lp = toLocal(p, s);
+    return Math.abs(lp.x) <= s.w/2 && Math.abs(lp.y) <= s.h/2;
+  }
+  function isOnRotateHandle(p, s){
+    const lp = toLocal(p, s);
+    const hx = 0;
+    const hy = -s.h/2 - ROTATE_HANDLE_OFFSET;
+    const d = Math.hypot(lp.x - hx, lp.y - hy);
+    return d <= ROTATE_HANDLE_RADIUS;
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,CANVAS_SIZE,CANVAS_SIZE);
+    if(bgImage){ const b=bgImage; ctx.drawImage(b.img, b.sx,b.sy,b.sw,b.sh, b.dx,b.dy,b.dw,b.dh); }
+    if(baseImage){ const b=baseImage; ctx.drawImage(b.img, b.sx,b.sy,b.sw,b.sh, b.dx,b.dy,b.dw,b.dh); }
+    for(const s of stickers){ drawSticker(s); }
+    if(selectedId){ const s=stickers.find(x=>x.id===selectedId); if(s) drawSelection(s); }
+  }
+  function drawSticker(s){
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.angle);
+    ctx.scale((s.flipX?-1:1)*s.scale, s.scale);
+    ctx.drawImage(s.img, -s.w/2, -s.h/2, s.w, s.h);
+    ctx.restore();
+  }
+  function drawSelection(s){
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.angle);
+    ctx.strokeStyle = '#00b094';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6,4]);
+    ctx.strokeRect(-s.w/2 * s.scale, -s.h/2 * s.scale, s.w * s.scale, s.h * s.scale);
+    ctx.setLineDash([]);
+    const topY = -s.h/2 * s.scale;
+    const hx = 0, hy = topY - ROTATE_HANDLE_OFFSET;
+    ctx.beginPath(); ctx.moveTo(0, topY); ctx.lineTo(hx, hy); ctx.stroke();
+    ctx.fillStyle = '#00b094';
+    ctx.beginPath(); ctx.arc(hx, hy, ROTATE_HANDLE_RADIUS, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function fitImageCover(img, target){
+    const tw=target, th=target, iw=img.width, ih=img.height;
+    const sc=Math.max(tw/iw, th/ih); const sw=tw/sc, sh=th/sc; const sx=(iw-sw)/2, sy=(ih-sh)/2;
+    return {img, sx,sy,sw,sh, dx:0,dy:0,dw:tw,dh:th};
+  }
+  function loadBaseFromFile(file){ const img=new Image(); img.onload=()=>{ baseImage=fitImageCover(img, CANVAS_SIZE); draw(); }; img.src=URL.createObjectURL(file); }
+  function loadBackground(src){ const img=new Image(); img.onload=()=>{ bgImage=fitImageCover(img, CANVAS_SIZE); draw(); }; img.src=src; }
+  function clearBackground(){ bgImage=null; draw(); }
+
+  function buildPresetThumbs(){
+    const tray = document.getElementById('presetThumbs'); tray.innerHTML='';
+    STICKERS.forEach(src=>{
+      const img = new Image(); img.src = src; img.alt='sticker';
+      const cell = document.createElement('button'); cell.className='thumb'; cell.appendChild(img);
+      cell.addEventListener('click', ()=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>createSticker(i); i.src=src; });
+      tray.appendChild(cell);
+    });
+  }
+  function buildBackgroundThumbs(){
+    const tray = document.getElementById('bgThumbs'); tray.innerHTML='';
+    BACKGROUNDS.forEach(src=>{
+      const img = new Image(); img.src = src; img.alt='background';
+      const cell = document.createElement('button'); cell.className='thumb'; cell.appendChild(img);
+      cell.addEventListener('click', ()=> loadBackground(src));
+      tray.appendChild(cell);
+    });
+  }
+
+  // Mouse
+  canvas.addEventListener('mousedown', e=>{
+    const p=getPointer(e);
+    const s=selectedId?stickers.find(x=>x.id===selectedId):null;
+    if(s && isOnRotateHandle(p,s)){
+      rotating = true; dragging=false;
+      rotateStart = { base: Math.atan2(p.y - s.y, p.x - s.x), angle0: s.angle };
+      return;
     }
-
-    // --- Geometry helpers ---
-    function toLocal(p, s){
-      let x = p.x - s.x; let y = p.y - s.y;
-      const ca = Math.cos(-s.angle), sa = Math.sin(-s.angle);
-      const xr = x*ca - y*sa; const yr = x*sa + y*ca;
-      const sc = s.scale || 1e-6;
-      return { x: xr / sc, y: yr / sc };
-    }
-
-    function pointInSticker(p, s){
-      const lp = toLocal(p, s);
-      return Math.abs(lp.x) <= s.w/2 && Math.abs(lp.y) <= s.h/2;
-    }
-
-    function isOnRotateHandle(p, s){
-      const lp = toLocal(p, s);
-      const hx = 0;
-      const hy = -s.h/2 - ROTATE_HANDLE_OFFSET;
-      const d = Math.hypot(lp.x - hx, lp.y - hy);
-      return d <= ROTATE_HANDLE_RADIUS;
-    }
-
-    function draw(){
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      // background first
-      if(bgImage){ const b=bgImage; ctx.drawImage(b.img, b.sx,b.sy,b.sw,b.sh, b.dx,b.dy,b.dw,b.dh); }
-      // base image over background
-      if(baseImage){ const b=baseImage; ctx.drawImage(b.img, b.sx,b.sy,b.sw,b.sh, b.dx,b.dy,b.dw,b.dh); }
-      // stickers on top
-      for(const s of stickers){ drawSticker(s); }
-      // selection box + rotate handle
-      if(selectedId){ const s=stickers.find(x=>x.id===selectedId); if(s) drawSelection(s); }
-    }
-
-    function drawSticker(s){
-      ctx.save();
-      ctx.translate(s.x, s.y);
-      ctx.rotate(s.angle);
-      const sx = (s.flipX ? -1 : 1) * s.scale;
-      ctx.scale(sx, s.scale);
-      ctx.drawImage(s.img, -s.w/2, -s.h/2, s.w, s.h);
-      ctx.restore();
-    }
-
-    function drawSelection(s){
-      ctx.save();
-      ctx.translate(s.x, s.y);
-      ctx.rotate(s.angle);
-      ctx.strokeStyle = '#00b094';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6,4]);
-      ctx.strokeRect(-s.w/2 * s.scale, -s.h/2 * s.scale, s.w * s.scale, s.h * s.scale);
-      ctx.setLineDash([]);
-      const topY = -s.h/2 * s.scale;
-      const hx = 0, hy = topY - ROTATE_HANDLE_OFFSET;
-      ctx.beginPath(); ctx.moveTo(0, topY); ctx.lineTo(hx, hy); ctx.stroke();
-      ctx.fillStyle = '#00b094';
-      ctx.beginPath(); ctx.arc(hx, hy, ROTATE_HANDLE_RADIUS, 0, Math.PI*2); ctx.fill();
-      ctx.restore();
-    }
-
-    function fitImageCover(img, target){
-      const tw=target, th=target; const iw=img.width, ih=img.height;
-      const sc=Math.max(tw/iw, th/ih);
-      const sw=tw/sc, sh=th/sc;
-      const sx=(iw-sw)/2, sy=(ih-sh)/2;
-      return {img, sx,sy,sw,sh, dx:0,dy:0,dw:tw,dh:th};
-    }
-
-    function loadBaseFromFile(file){ const img=new Image(); img.onload=()=>{ baseImage=fitImageCover(img, canvas.width); draw(); }; img.src=URL.createObjectURL(file); }
-    function loadBackground(src){ const img=new Image(); img.onload=()=>{ bgImage=fitImageCover(img, canvas.width); draw(); }; img.src=src; }
-    function clearBackground(){ bgImage=null; draw(); }
-
-    function buildPresetThumbs(){
-      const tray = document.getElementById('presetThumbs'); tray.innerHTML='';
-      STICKERS.forEach(src=>{
-        const img = new Image(); img.src = src; img.alt='sticker';
-        const cell = document.createElement('button'); cell.className='thumb'; cell.appendChild(img);
-        cell.addEventListener('click', ()=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>createSticker(i); i.src=src; });
-        tray.appendChild(cell);
-      });
-    }
-
-    function buildBackgroundThumbs(){
-      const tray = document.getElementById('bgThumbs'); tray.innerHTML='';
-      BACKGROUNDS.forEach(src=>{
-        const img = new Image(); img.src = src; img.alt='background';
-        const cell = document.createElement('button'); cell.className='thumb'; cell.appendChild(img);
-        cell.addEventListener('click', ()=> loadBackground(src));
-        tray.appendChild(cell);
-      });
-    }
-
-    // --- Events ---
-    canvas.addEventListener('mousedown', e=>{
-      const p=getPointer(e);
-      const s=selectedId?stickers.find(x=>x.id===selectedId):null;
-      if(s && isOnRotateHandle(p,s)){
-        rotating = true; dragging=false;
-        rotateStart = { base: Math.atan2(p.y - s.y, p.x - s.x), angle0: s.angle };
+    for(let i=stickers.length-1;i>=0;i--){
+      const st=stickers[i];
+      if(pointInSticker(p,st)){
+        selectedId=st.id; syncControlsFromSelection(); draw();
+        dragging=true; rotating=false;
+        dragOffset={x:p.x-st.x,y:p.y-st.y};
+        const idx=stickers.indexOf(st); stickers.splice(idx,1); stickers.push(st);
         return;
       }
-      // pick for dragging from topmost
-      for(let i=stickers.length-1;i>=0;i--){
-        const st=stickers[i];
-        if(pointInSticker(p,st)){
-          selectedId=st.id; syncControlsFromSelection(); draw();
-          dragging=true; rotating=false;
-          dragOffset={x:p.x-st.x,y:p.y-st.y};
-          const idx=stickers.indexOf(st); stickers.splice(idx,1); stickers.push(st);
-          return;
-        }
-      }
-      selectedId=null; draw();
-    });
-
-    canvas.addEventListener('mousemove', e=>{
-      const p=getPointer(e);
-      if(rotating && selectedId){
-        const s=stickers.find(x=>x.id===selectedId);
-        const a = Math.atan2(p.y - s.y, p.x - s.x);
-        s.angle = rotateStart.angle0 + (a - rotateStart.base);
-        $('#rotateRange').value = (s.angle * 180 / Math.PI).toFixed(0);
-        draw();
-      } else if(dragging && selectedId){
-        const s=stickers.find(x=>x.id===selectedId);
-        s.x=p.x-dragOffset.x; s.y=p.y-dragOffset.y; draw();
-      }
-    });
-
-    window.addEventListener('mouseup', ()=>{ dragging=false; rotating=false; });
-
-    // Wheel scale (quasi infinito)
-    canvas.addEventListener('wheel', e=>{
-      if(!selectedId) return;
-      const s=stickers.find(x=>x.id===selectedId);
-      const delta = e.deltaY<0?1.06:0.94;
-      s.scale=Math.max(1e-6,Math.min(8,s.scale*delta));
-      $('#scaleRange').value=s.scale;
-      draw();
-      e.preventDefault();
-    }, {passive:false});
-
-    // UI
-    $('#uploadBtn').addEventListener('click', ()=> $('#upload').click());
-    $('#upload').addEventListener('change', e=>{ const f=e.target.files[0]; if(f) loadBaseFromFile(f); });
-    $('#exportBtn').addEventListener('click', exportPNG);
-    $('#clearBtn').addEventListener('click', removeSelected);
-    $('#frontBtn').addEventListener('click', bringToFront);
-    $('#flipBtn').addEventListener('click', flipSelected);
-    $('#clearBgBtn').addEventListener('click', clearBackground);
-    $('#scaleRange').addEventListener('input', e=>{
-      if(!selectedId) return;
-      const s=stickers.find(x=>x.id===selectedId);
-      s.scale=Math.max(1e-6, parseFloat(e.target.value));
-      draw();
-    });
-    $('#rotateRange').addEventListener('input', e => {
-      if (!selectedId) return;
-      const s = stickers.find(x => x.id === selectedId);
-      s.angle = parseFloat(e.target.value) * Math.PI / 180; // deg -> rad
-      draw();
-    });
-
-    function flipSelected(){ if(!selectedId) return; const s=stickers.find(x=>x.id===selectedId); s.flipX = !s.flipX; draw(); }
-    function bringToFront(){ if(!selectedId) return; const idx=stickers.findIndex(x=>x.id===selectedId); if(idx>-1){ const s=stickers.splice(idx,1)[0]; stickers.push(s); draw(); } }
-    function removeSelected(){ if(!selectedId) return; const i=stickers.findIndex(x=>x.id===selectedId); if(i>-1){ stickers.splice(i,1); selectedId=null; draw(); } }
-
-    function exportPNG(){
-      draw();
-      const url=canvas.toDataURL('image/png');
-      const a=document.createElement('a');
-      const ts=new Date().toISOString().replace(/[:.]/g,'-');
-      a.download=`USDUT_PFP_${ts}_${canvas.width}x${canvas.height}.png`;
-      a.href=url;
-      a.click();
     }
+    selectedId=null; draw();
+  });
+  window.addEventListener('mousemove', e=>{
+    const p=getPointer(e);
+    if(rotating && selectedId){
+      const s=stickers.find(x=>x.id===selectedId);
+      const a = Math.atan2(p.y - s.y, p.x - s.x);
+      s.angle = rotateStart.angle0 + (a - rotateStart.base);
+      $('#rotateRange').value = (s.angle * 180 / Math.PI).toFixed(0);
+      draw();
+    } else if(dragging && selectedId){
+      const s=stickers.find(x=>x.id===selectedId);
+      s.x=p.x-dragOffset.x; s.y=p.y-dragOffset.y; draw();
+    }
+  });
+  window.addEventListener('mouseup', ()=>{ dragging=false; rotating=false; });
 
-    function syncControlsFromSelection(){
-      const s = stickers.find(x => x.id === selectedId);
-      if(!s) return;
+  // Touch gestures: pinch to scale + 2-finger rotate
+  canvas.addEventListener('touchstart', e=>{
+    if(e.touches.length===2 && selectedId){
+      const s = stickers.find(x=>x.id===selectedId);
+      const {dist, angle} = getTwoTouchData(e);
+      pinch = { active:true, dist0:dist, angle0:angle, scale0:s.scale, angleStart:s.angle };
+      e.preventDefault();
+      return;
+    }
+    const p=getPointer(e);
+    const s=selectedId?stickers.find(x=>x.id===selectedId):null;
+    if(s && isOnRotateHandle(p,s)){
+      rotating = true; dragging=false;
+      rotateStart = { base: Math.atan2(p.y - s.y, p.x - s.x), angle0: s.angle };
+      e.preventDefault(); return;
+    }
+    for(let i=stickers.length-1;i>=0;i--){
+      const st=stickers[i];
+      if(pointInSticker(p,st)){
+        selectedId=st.id; syncControlsFromSelection(); draw();
+        dragging=true; rotating=false;
+        dragOffset={x:p.x-st.x,y:p.y-st.y};
+        const idx=stickers.indexOf(st); stickers.splice(idx,1); stickers.push(st);
+        e.preventDefault(); return;
+      }
+    }
+    selectedId=null; draw();
+  }, {passive:false});
+
+  canvas.addEventListener('touchmove', e=>{
+    if(pinch.active && e.touches.length===2 && selectedId){
+      const s = stickers.find(x=>x.id===selectedId);
+      const {dist, angle} = getTwoTouchData(e);
+      const k = dist / pinch.dist0;
+      s.scale = Math.max(1e-6, Math.min(8, pinch.scale0 * k));
+      s.angle = pinch.angleStart + (angle - pinch.angle0);
       $('#scaleRange').value = s.scale;
       $('#rotateRange').value = (s.angle * 180 / Math.PI).toFixed(0);
+      draw();
+      e.preventDefault(); return;
     }
+    const p=getPointer(e);
+    if(dragging && selectedId){
+      const s=stickers.find(x=>x.id===selectedId);
+      s.x=p.x-dragOffset.x; s.y=p.y-dragOffset.y; draw(); e.preventDefault();
+    }
+  }, {passive:false});
 
-    // Init
-    buildBackgroundThumbs();
-    buildPresetThumbs();
+  window.addEventListener('touchend', ()=>{
+    if(pinch.active) pinch.active=false;
+    dragging=false; rotating=false;
+  });
+
+  // Wheel scale (desktop)
+  canvas.addEventListener('wheel', e=>{
+    if(!selectedId) return;
+    const s=stickers.find(x=>x.id===selectedId);
+    const delta = e.deltaY<0?1.06:0.94;
+    s.scale=Math.max(1e-6,Math.min(8,s.scale*delta));
+    $('#scaleRange').value=s.scale; draw(); e.preventDefault();
+  }, {passive:false});
+
+  // UI
+  $('#uploadBtn').addEventListener('click', ()=> $('#upload').click());
+  $('#upload').addEventListener('change', e=>{ const f=e.target.files[0]; if(f) loadBaseFromFile(f); });
+  $('#exportBtn').addEventListener('click', exportPNG);
+  $('#clearBtn').addEventListener('click', removeSelected);
+  $('#frontBtn').addEventListener('click', bringToFront);
+  $('#flipBtn').addEventListener('click', flipSelected);
+  $('#clearBgBtn').addEventListener('click', clearBackground);
+  $('#scaleRange').addEventListener('input', e=>{
+    if(!selectedId) return;
+    const s=stickers.find(x=>x.id===selectedId);
+    s.scale=Math.max(1e-6, parseFloat(e.target.value)); draw();
+  });
+  $('#rotateRange').addEventListener('input', e=>{
+    if (!selectedId) return;
+    const s = stickers.find(x => x.id === selectedId);
+    s.angle = parseFloat(e.target.value) * Math.PI / 180; draw();
+  });
+
+  function flipSelected(){ if(!selectedId) return; const s=stickers.find(x=>x.id===selectedId); s.flipX = !s.flipX; draw(); }
+  function bringToFront(){ if(!selectedId) return; const idx=stickers.findIndex(x=>x.id===selectedId); if(idx>-1){ const s=stickers.splice(idx,1)[0]; stickers.push(s); draw(); } }
+  function removeSelected(){ if(!selectedId) return; const i=stickers.findIndex(x=>x.id===selectedId); if(i>-1){ stickers.splice(i,1); selectedId=null; draw(); } }
+
+  function exportPNG(){
+    // Export at exact 512x512 regardless of DPR
     draw();
-  </script>
+    const out = document.createElement('canvas');
+    out.width = out.height = CANVAS_SIZE;
+    const octx = out.getContext('2d');
+    // Redraw final composition onto out
+    // (Faster: draw from main canvas scaled down by DPR)
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    octx.drawImage(canvas, 0,0, CANVAS_SIZE*dpr, CANVAS_SIZE*dpr, 0,0, CANVAS_SIZE, CANVAS_SIZE);
+    const url=out.toDataURL('image/png');
+    const a=document.createElement('a');
+    const ts=new Date().toISOString().replace(/[:.]/g,'-');
+    a.download=`USDUT_PFP_${ts}_${CANVAS_SIZE}x${CANVAS_SIZE}.png`;
+    a.href=url; a.click();
+  }
+
+  function syncControlsFromSelection(){
+    const s = stickers.find(x => x.id === selectedId);
+    if(!s) return;
+    $('#scaleRange').value = s.scale;
+    $('#rotateRange').value = (s.angle * 180 / Math.PI).toFixed(0);
+  }
+
+  // Init
+  buildBackgroundThumbs();
+  (function buildPresetThumbsInit(){
+    const tray = document.getElementById('presetThumbs'); tray.innerHTML='';
+    STICKERS.forEach(src=>{
+      const img = new Image(); img.src = src; img.alt='sticker';
+      const cell = document.createElement('button'); cell.className='thumb'; cell.appendChild(img);
+      cell.addEventListener('click', ()=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>createSticker(i); i.src=src; });
+      tray.appendChild(cell);
+    });
+  })();
+  setupHiDPI();
+</script>
 </body>
 </html>
-
