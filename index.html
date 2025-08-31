@@ -13,8 +13,22 @@
   html,body{height:100%}
   body{margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; display:flex; flex-direction:column}
 
-  header{padding:14px 18px; display:flex; gap:10px; align-items:center; border-bottom:1px solid var(--muted); background:var(--bg)}
-  header h1{font-size:18px; margin:0; font-weight:700}
+  /* Header con logo + titolo */
+  header{
+    padding:14px 18px;
+    display:flex;
+    align-items:center;
+    border-bottom:1px solid var(--muted);
+    background:var(--bg);
+  }
+  header .brand{
+    display:flex; align-items:center; gap:10px;
+  }
+  header .brand .brand-logo{
+    height: 1.4em; /* proporzionale alla dimensione del testo */
+    width: auto; display:block; object-fit:contain; user-select:none;
+  }
+  header h1{ font-size:18px; margin:0; font-weight:700; white-space:nowrap; }
 
   main{padding:var(--gap); display:flex; flex-direction:column; gap:var(--gap)}
 
@@ -49,7 +63,7 @@
   /* Slider */
   input[type=range]{width:100%; height:44px; -webkit-tap-highlight-color:transparent}
 
-  /* Footer actions (in fondo alla pagina) */
+  /* Footer actions */
   .actions{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
   @media (min-width: 520px){ .actions{grid-template-columns: repeat(4,1fr)} }
 
@@ -60,7 +74,13 @@
 </style>
 </head>
 <body>
-  <header><h1>USDUT PFP</h1></header>
+  <!-- HEADER con logo -->
+  <header>
+    <div class="brand">
+      <img src="/stickers/logo.png" alt="USDUT PFP logo" class="brand-logo" draggable="false" />
+      <h1>USDUT PFP</h1>
+    </div>
+  </header>
 
   <main>
     <!-- Upload -->
@@ -106,7 +126,7 @@
       </div>
     </details>
 
-    <!-- BOTTINI in fondo alla pagina -->
+    <!-- Bottoni finali -->
     <section class="card">
       <div class="actions">
         <button class="btn" id="exportBtn">Export PNG</button>
@@ -133,7 +153,7 @@
   const ctx = canvas.getContext('2d', { alpha: true });
   const CANVAS_SIZE = 512;
 
-  // HiDPI: adatta il canvas alla larghezza della sua card, non della finestra
+  // HiDPI: adatta il canvas alla larghezza della card
   function setupHiDPI(){
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     const container = document.querySelector('.canvas-wrap');
@@ -152,7 +172,7 @@
   let baseImage = null, bgImage = null;
 
   // Stickers
-  const stickers = []; // {id,img,x,y,scale,w,h,angle,flipX}
+  const stickers = [];
   let selectedId = null;
 
   // Gestures
@@ -324,7 +344,7 @@
       if(pointInSticker(p,st)){
         selectedId=st.id; syncControlsFromSelection(); draw();
         dragging=true; rotating=false;
-        dragOffset={x:p.x-st.x,y:p.y-st-y};
+        dragOffset={x:p.x-st.x,y:p.y-st.y};
         const idx=stickers.indexOf(st); stickers.splice(idx,1); stickers.push(st);
         e.preventDefault(); return;
       }
